@@ -814,7 +814,7 @@
             "preparation": "Shake all ingredients with ice and strain into the glass.",
             "presentation": "Cocktail glass, garnished with cherry; the absinthe can be withheld and used to rinse glass",
             "history": "This is the Harry Craddock variation on the original Corpse Reviver (No. 1); both appeared in his 1930 The Savoy Cocktail Book. The Corpse Reviver family of cocktails is part of the \"hair of the dog\" genre. \"Corpse reviver\" originally referred to a dram of mixed spirits, and to any hangover cure.",
-            "preparationsAndVariations": "This cocktail is a variation on the No. 1. In the 1860s, layered versions were popular in Parian bars. The Savoy Cocktail Book warns of this recipe, \"Four of these taken in swift succession will unrevive the corpse again.\""
+            "preparationsAndVariations": "This cocktail is a variation on the the No. 1. In the 1860s, layered versions were popular in Parian bars. The Savoy Cocktail Book warns of this recipe, \"Four of these taken in swift succession will unrevive the corpse again.\""
           },
           {
             "name": "Death in the Afternoon",
@@ -1750,7 +1750,10 @@
                 </div>`;
         };
 
-        const renderCompendium = () => {
+        const updateCocktailGrid = () => {
+            const gridContainer = document.getElementById('cocktail-grid-container');
+            if (!gridContainer) return;
+
             const filteredCocktails = cocktails
                 .filter(cocktail => state.activeEra === Era.ALL || cocktail.era === state.activeEra)
                 .filter(cocktail => {
@@ -1758,6 +1761,17 @@
                     return term === '' || cocktail.name.toLowerCase().includes(term) || cocktail.ingredients.some(ing => ing.toLowerCase().includes(term));
                 });
             
+            gridContainer.innerHTML = `
+                ${filteredCocktails.map(CocktailCardHTML).join('')}
+                ${filteredCocktails.length === 0 ? `
+                    <div class="text-center py-16 text-gray-500" style="grid-column: 1 / -1;">
+                        <p class="text-2xl">No cocktails found.</p>
+                        <p>Try adjusting your search or filter.</p>
+                    </div>` : ''}
+            `;
+        };
+
+        const renderCompendium = () => {
             app.innerHTML = `
                 <header class="sticky top-0 z-20 bg-gray-900/80 backdrop-blur-sm py-4 border-b border-gray-800">
                     <div class="container mx-auto px-4 flex justify-between items-center">
@@ -1791,20 +1805,16 @@
                             `).join('')}
                         </div>
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                        ${filteredCocktails.map(CocktailCardHTML).join('')}
+                    <div id="cocktail-grid-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                        
                     </div>
-                    ${filteredCocktails.length === 0 ? `
-                        <div class="text-center py-16 text-gray-500">
-                            <p class="text-2xl">No cocktails found.</p>
-                            <p>Try adjusting your search or filter.</p>
-                        </div>` : ''}
                 </main>`;
             
+            updateCocktailGrid();
+
             document.getElementById('search-bar')?.addEventListener('input', (e) => {
                 state.searchTerm = e.target.value;
-                renderCompendium();
-                document.getElementById('search-bar')?.focus();
+                updateCocktailGrid();
             });
         };
         
@@ -2115,9 +2125,17 @@
         };
         
         // --- GLOBAL EVENT LISTENER ---
-        app.addEventListener('click', (e) => {
+        document.addEventListener('click', (e) => {
             const target = e.target.closest('[data-action]');
-            if (!target) return;
+            if (!target) {
+                // Handle modal background clicks specifically
+                if (e.target.id === 'modal-container') {
+                    const action = e.target.dataset.action;
+                    if (action === 'closeModal') closeModal();
+                    if (action === 'next-round') handleNextRound();
+                }
+                return;
+            };
 
             const action = target.dataset.action;
 
@@ -2230,15 +2248,6 @@
                         setState({ learnedCards: new Set(), flashcardCurrentIndex: 0, isFlipped: false });
                     }
                     break;
-            }
-        });
-        
-        document.body.addEventListener('click', (e) => {
-            const target = e.target;
-            if (target.id === 'modal-container') {
-                const action = target.dataset.action;
-                if (action === 'closeModal') closeModal();
-                if (action === 'next-round') handleNextRound();
             }
         });
         
