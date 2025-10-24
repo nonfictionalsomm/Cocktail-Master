@@ -1,0 +1,2284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cocktail Catalog</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* For custom scrollbar aesthetics */
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #2d3748; /* gray-800 */
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #718096; /* gray-500 */
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #a0aec0; /* gray-400 */
+      }
+
+      /* For Flashcard Flip Animation */
+      .flashcard-scene {
+        perspective: 1000px;
+        cursor: pointer;
+      }
+      .flashcard {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        transform-style: preserve-3d;
+        transition: transform 0.6s;
+      }
+      .flashcard.is-flipped {
+        transform: rotateY(180deg);
+      }
+      .flashcard-face {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden; /* Safari */
+        backface-visibility: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
+      .flashcard-face--back {
+        transform: rotateY(180deg);
+        justify-content: flex-start;
+        align-items: flex-start;
+      }
+
+      /* Styles for landscape mode on mobile */
+      @media (orientation: landscape) and (max-height: 500px) {
+        .flashcard-screen .landscape-hidden {
+          display: none !important;
+        }
+        .flashcard-screen .landscape-container {
+          padding: 8px !important;
+          height: 100vh !important;
+          max-height: 100vh !important;
+          justify-content: space-around !important;
+        }
+        .flashcard-screen .landscape-flashcard-wrapper {
+          flex-grow: 1 !important;
+          height: auto !important;
+          max-height: calc(100% - 70px) !important; /* Space for the button */
+        }
+        .flashcard-screen .landscape-controls-wrapper {
+          margin-top: 0 !important;
+          width: 100%;
+        }
+      }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans">
+    <div id="app" class="min-h-screen font-serif"></div>
+
+    <script type="module">
+        const app = document.getElementById('app');
+        if (!app) throw new Error('Root element not found');
+
+        // --- DATA ---
+        const Era = {
+            ALL: 'All Eras',
+            PRE_PROHIBITION: 'Pre-Prohibition',
+            PROHIBITION: 'Prohibition',
+            DISCO: 'Disco Era',
+            MODERN: 'Modern Age',
+        };
+
+        const cocktails = [
+          // Pre-Prohibition
+          {
+            "name": "4th Regiment",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "1 ounce rye whiskey",
+              "1 ounce sweet vermouth",
+              "1 dash each orange bitters, Peychaud’s bitters, and celery bitters"
+            ],
+            "preparation": "Shake all ingredients with ice and strain into a cocktail coupe.",
+            "presentation": "Garnish with lemon peel.",
+            "history": "The universally accepted first documentation of this cocktail is in Drinks (1914), by Jaques Straub, who instructs the bartender to shake the ingredients. The book begins with an in-depth guide to wine service and vintage characteristics of the most popular French wine regions in the early 20th century.",
+            "preparationsAndVariations": "Bartenders often make their own versions of this cocktail by varying the amount of bitters. It would be rare for a bartender to shake this cocktail today."
+          },
+          {
+            "name": "Absinthe Frappé",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "1½ ounces absinthe",
+              "½ ounce sugar syrup",
+              "6–8 mint leaves"
+            ],
+            "preparation": "Muddle mint at the bottom of the glass, add absinthe and sugar syrup on top, and pack full with crushed ice.",
+            "presentation": "Serve in a frappé, absinthe, or old-fashioned glass, with a straw, and garnished with mint.",
+            "history": "This drink was created and first served at the Old Absinthe House, in the French Quarter of New Orleans, in 1874. Prepared as a cobbler, it was essentially a riff on the traditional absinthe serve of four parts water to one part absinthe. The historic Old Absinthe House was patronized by the likes of Oscar Wilde, Mark Twain, and General Robert E. Lee, and it still has its original green marble absinthe fountain, which is built into the bar but now unusable.",
+            "preparationsAndVariations": "The sugar syrup can range in concentration per the desired level of sweetness. Some recommend shaking the ingredients and straining the cocktail over fresh ice, while others prefer blending the ingredients with ice to make a modern-day frappé."
+          },
+          {
+            "name": "Alexander",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "¾ ounce VS Cognac",
+              "¾ ounce white crème de cacao",
+              "¾ ounce cream"
+            ],
+            "preparation": "Shake all ingredients with ice and strain.",
+            "presentation": "Cocktail coupe, garnished with grated nutmeg",
+            "history": "The first documentation of an Alexander cocktail was in 1910, in J. A. Grohusko’s Jack’s Manual on the Vintage and Production, Care and Handling of Wines, Liquors, Etc. The recipe called for three parts rye whiskey and one part Bénédictine, served over one ice cube. In 1916, the author Hugo Ensslin included a version in Recipes for Mixed Drinks that called for equal parts gin, white crème de cacao, and sweet cream. The Savoy Cocktail Book (1930) listed three variations on that drink.",
+            "preparationsAndVariations": "The Savoy Cocktail Book includes The No. 1, with two parts gin and one part each crème de cacao and cream; The No. 2, listed above and commonly referred to as the Brandy Alexander; and Alexander’s Sister, with equal parts gin, crème de menthe, and cream. The last of these would not likely be garnished with nutmeg."
+          },
+          {
+            "name": "Americano",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "1 ounce Campari",
+              "1 ounce sweet vermouth",
+              "soda water"
+            ],
+            "preparation": "Serve over ice.",
+            "presentation": "Glassware depends on amount of soda water; garnish with orange slice.",
+            "history": "The first Americano was served at Caffè Camparino in the 1860s under the name Milano-Torino, to identify the origins of the Campari and sweet vermouth. Gaspare Campari’s creation was later renamed the Americano for Primo Carnera, the Italian boxer who was the first non-American to win the US heavyweight boxing championship.",
+            "preparationsAndVariations": "The original vermouth in the Americano was Punt y Mes, made in Turin by the Carpano family. The brand was purchased by Fernet-Branca in 2001—which would make the cocktail a Milano-Milano. While the vermouth brand can vary, the amount of soda is more significant. Some use a splash; some don’t use any. Others build the drink long with a few ounces of soda. It’s best to ask guests which they prefer."
+          },
+          {
+            "name": "Aviation",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "1½ ounces London dry gin",
+              "¾ ounce lemon juice",
+              "2 dashes maraschino liqueur",
+              "2 dashes Crème Yvette"
+            ],
+            "preparation": "Combine all ingredients in a cocktail shaker. Add ice and shake to chill. Strain into a chilled cocktail glass.",
+            "presentation": "Cocktail glass, garnished with cherry or lemon peel",
+            "history": "The Aviation was actually created well before Charles Lindbergh’s unprecedented nonstop transatlantic flight in 1927. In Recipes for Mixed Drinks (1916), the author Hugo Ensslin included his proprietary recipe for the sky-colored Aviation. In The Savoy Cocktail Book (1930), Harry Craddock published a recipe that omitted Crème Yvette.",
+            "preparationsAndVariations": "The recipe above is Hugo Ensslin’s original from 1916. Many believe that Craddock omitted Crème Yvette from his 1930 recipe because of its scarcity in Europe. In the US, Crème Yvette was produced in Philadelphia until 1969, then went out of production until its revival in 2009. Still, many bartenders prefer to omit a violet liqueur from the Aviation. It is correct to refer to this cocktail as the Aviation No. 2.\nOther variations include the Blue Moon, which leaves out maraschino; the Moonlight, in which lemon juice and maraschino are replaced by lime and Cointreau; and the Casino, in which Crème Yvette is replaced by a few dashes of orange bitters."
+          },
+          {
+            "name": "Bamboo",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "1½ ounces Fino Sherry",
+              "1½ ounces dry vermouth",
+              "2 dashes Angostura bitters",
+              "2 dashes orange bitters"
+            ],
+            "preparation": "Combine all ingredients in a mixing glass and stir with ice briefly to chill. Strain into glass.",
+            "presentation": "Cocktail coupe, garnished with orange and/or lemon twist",
+            "history": "While the Bamboo was enjoyed in the US as early as 1901, it was created a decade before, in Yokohama, Japan, at the Grand Hotel. Opened by a few American military officers, the Grand Hotel was an effort to bring a bit of home overseas. The creator of the Bamboo, Louis Eppinger, ran the Grand Hotel bar for over 15 years, until he died. He had learned bartending under Jerry “The Professor” Thomas in San Francisco. The cocktail grew to such fame that premixed versions were bottled and sold across the US.",
+            "preparationsAndVariations": "Many top bartenders today like to include a hint of sugar syrup to add texture, an adjustment credited to Joaquín Simó, a former partner of Pouring Ribbons, in New York. It is important to not overstir this cocktail; it should be made cold, but not diluted. Chilling both the mixing glass and the serving glass before icing down the ingredients is recommended."
+          },
+          {
+            "name": "Bijou",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "1 ounce gin",
+              "1 ounce green Chartreuse",
+              "1 ounce sweet vermouth",
+              "dash of orange bitters"
+            ],
+            "preparation": "Stir all ingredients with ice and strain.",
+            "presentation": "Cocktail coupe, garnished with a lemon twist",
+            "history": "Bijou is the French word for “jewel.” This is an 1890s recipe that was first documented in the 1900 New and Improved Bartenders’ Manual, by Harry Johnson. One of the great bartenders of the 19th century, Johnson had worked in bars and owned them in San Francisco, Chicago, Boston, and New York. His 1900 book, its third edition, includes notes on proper etiquette for bar patrons, instructions for how to serve and wait on guests, and information on a variety of spirits, liqueurs, beverages, and tools. It is considered the first true manual for bartenders.",
+            "preparationsAndVariations": "The gin (diamond), Chartreuse (emerald), and vermouth (ruby) are traditionally stirred, but, when they are kept separate and layered to show their distinct colors, the cocktail is called an Amber Dream."
+          },
+          {
+            "name": "Boothby",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "1½ ounces whiskey (bourbon or rye)",
+              "¾ ounce sweet vermouth",
+              "2 dashes Angostura bitters",
+              "2 dashes orange bitters",
+              "1 ounce Champagne"
+            ],
+            "preparation": "Stir the first four ingredients into the glass and top with Champagne.",
+            "presentation": "Cocktail coupe, garnished with orange peel",
+            "history": "This cocktail’s namesake is William Boothby, an iconic San Francisco bartender (and later assemblyman) who worked at several of the city’s fine institutions, notably the Palace Hotel, Parker House Bar, and the Silver Palace. In 2009, Anchor Distilling Company published a reprint of his 1908 bartending manual, complete with a recipe for the Boothby Cocktail (which never actually appeared in any of his original publications).",
+            "preparationsAndVariations": "The Boothby Cocktail is a Manhattan variant, sometimes called the Boothby Manhattan."
+          },
+          {
+            "name": "Brandy Crusta",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "2 ounces brandy",
+              "1 teaspoon curaçao",
+              "1 teaspoon lemon juice",
+              "1 teaspoon maraschino",
+              "½ teaspoon rich simple syrup",
+              "2 dashes Angostura bitters"
+            ],
+            "preparation": "Shake all ingredients with ice and strain.",
+            "presentation": "Nick and Nora glass with a sugar rim, garnished with a lemon twist",
+            "history": "Invented in the 1850s by Joseph Santini, in New Orleans, and first published in Jerry Thomas’s Bartenders Guide (1862), the drink nearly vanished from the United States for a century, but it was popular in Australia through the 20th century. The Brandy Crusta was rescued from obscurity in the 2000s by American cocktail historians.",
+            "preparationsAndVariations": "Variations of the cocktail are traditionally rooted in the glassware debate of coupe, cocktail glass, or small wine glass. Other recipes include larger amounts of the secondary ingredients."
+          },
+          {
+            "name": "Bronx",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "1 ounce gin",
+              "½ ounce sweet vermouth",
+              "½ ounce dry vermouth",
+              "½ ounce orange juice"
+            ],
+            "preparation": "Shake all ingredients with ice and strain.",
+            "presentation": "Cocktail glass, garnished with orange slice (optional)",
+            "history": "The first documentation of the Bronx is in William Boothby’s The World’s Drinks and How to Mix Them (1908), in which he cites Billy Malloy, in Pittsburgh, as the creator. In Magnus Bredenbek’s What Shall We Drink? (1934), credit is given to a Bronx restauranteur, Joseph Sormani, for naming the drink after finding it in Quaker City, Pennsylvania, and suggests the drink would have stayed there if not for Sormani. In his New York Times obituary in 1947, Sormani is credited with creating the Bronx.\nAlbert Stevens Crockett, a historian of the Waldorf Astoria, however, asserts that the cocktail was created by Johnnie Solon, a pre-Prohibition bartender at the Waldorf Astoria. He says it was a variation on a popular cocktail served at the hotel called the Duplex, made from equal parts French and Italian vermouth, shaken with a squeeze of orange.\nIn Harman Burke’s Burke’s Complete Cocktail and Drinking Recipes (1934), the Bronx is ranked the third most popular drink in the world behind the martini and the Manhattan.",
+            "preparationsAndVariations": "Three versions are mentioned in both Hugo Ensslin’s Recipes for Mixed Drinks and Harry Craddock’s The Savoy Cocktail Book. The original is listed above. For the Dry Bronx, muddle three slices of orange and one slice of pineapple in the shaker. Add one part each gin and French vermouth and shake with ice. The Golden Bronx is the same as the Bronx with the addition of an egg white.\nHarman Burke states in his book that the original recipe was a bit stronger, consisting of four parts gin and one part each sweet and dry vermouth and orange juice. Boothby’s book, however, calls for equal parts Plymouth gin, French vermouth, and Italian vermouth, with a barspoon of orange juice, two dashes of orange bitters, and a squeeze from an orange peel."
+          },
+          {
+            "name": "Brooklyn",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "1½ ounces rye whiskey",
+              "1½ ounces dry vermouth",
+              "dash of maraschino liqueur",
+              "dash of Amer Picon"
+            ],
+            "preparation": "Stir all ingredients with ice and strain.",
+            "presentation": "Served up or on the rocks, garnished with lemon twist or orange twist, or both",
+            "history": "The Brooklyn made its first print appearance in Jack’s Manual (1908), by J. A. Grohusko, a famous New York City bartender in the years before Prohibition. The origin of the cocktail is unknown; while Grohusko may not be the creator, he is the first to record it.",
+            "preparationsAndVariations": "The above recipe is the original from 1908, but it is virtually impossible to reproduce. Amer Picon is a French bitter based heavily on orange peel, gentian root, quinine, and sugar syrup. It was 38% ABV when this recipe was created but is now bottled at 21% ABV, quite a bit sweeter, and very difficult to find outside Europe.\nTo replace Amer Picon, some bartenders will make an orange tincture by steeping orange peel in neutral grain spirit, while others mix two parts Ramazzotti with one part Combier, one part orange bitters, and orange peels, allowing this to rest for a few days. Torani Amer, produced by the San Francisco-based Torani, is a perfect replacement for Amer Picon, as it is made with the same ingredients and at the same alcoholic strength as the original bitter.\nVariations on the cocktail revolve around the proportion of each ingredient and the brands used. Many recommend a higher-proof whiskey, such as Rittenhouse bonded rye, for a slightly drier version, and a lower-proof whiskey, such as Old Overholt, for a rounder rendition. Others like to blend the whiskeys, or use something different altogether.\nOne of the most surprising variations is included in The Savoy Cocktail Book (1930). It recommends using Canadian Club and shaking the cocktail."
+          },
+          {
+            "name": "Clover Club",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "1 1/2 ounces gin",
+              "3/4 ounce lemon juice",
+              "3/4 ounce raspberry syrup",
+              "1 egg white"
+            ],
+            "preparation": "Shake and strain into the glass. Double shaking or a dry shake may be used to create better texture.",
+            "presentation": "Cocktail coupe",
+            "history": "The Clover Club is named for the Philadelphia gentlemen's club of the same name, which met at the Bellevue-Strafford Hotel. The club, founded in 1882, is said to have operated through the 1920s. The cocktail is mentioned in Mary Deacon's The Clover Club of Philadelphia (1897), and the recipe first appears in the 1917 The Ideal Bartender, by Thomas Bullock.",
+            "preparationsAndVariations": "A dry, or double, shake is to first shake ingredients without ice to incorporate more air into the egg white. This drink benefits from extended shaking, and a double shake minimizes dilution. Placing the spring from a Hawthorne strainer into the tin will also further emulsify the egg white.\nTo make a simple raspberry syrup, vigorously mix one pint of raspberries and one pint of sugar. Let the mixture stand for 15 to 20 minutes, then add a pint of hot water and stir to incorporate. Strain and let cool, or blend the mixture and then strain. The syrup should be clear.\nThe recipe in The Ideal Bartender calls for white vermouth instead of lemon juice. Another popular variation is to use grenadine, créme de cassis, or Chambord in place of the raspberry syrup."
+          },
+          {
+            "name": "Collins",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "2 ounces bourbon or gin",
+              "3/4 ounce lemon juice",
+              "3/4 ounce simple syrup",
+              "Chilled club soda"
+            ],
+            "preparation": "Shake the spirit, lemon juice, and syrup with ice and strain into an ice-filled glass. Top with club soda.",
+            "presentation": "Highball or Collins glass, garnished with orange slice or cherry",
+            "history": "Credit for creating the John Collins is often given to a bartender of the same name who worked at Limmer's Old House in Mayfair, London, in the 1860s. Historian Dave Wondrich asserts that the original recipe would have been introduced to New York in the 1850s and was probably similar to the gin punches served in London. The John Collins is a single-serving cocktail based on those old punches, which were made of gin, lemon juice, maraschino liqueur, and soda water.\nThe first printed recipe appeared in The Steward and Barkeeper's Manual (1869), part of the Haney Trade Manual series. It called for powdered sugar, lemon, Old Tom Gin, and soda water.",
+            "preparationsAndVariations": "Today, a John Collins is often served with bourbon or another American whiskey. The cocktail originally used genever, and when Old Tom Gin was introduced, the Tom Collins was born. It would be correct to only make a Tom Collins with Old Tom Gin, and to make a John Collins with any other type of gin or American whiskey. The best course of action, however, is to make what the guest wants."
+          },
+          {
+            "name": "Corpse Reviver No. 1",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "1 1/2 ounces Cognac",
+              "3/4 ounce Calvados or apple brandy",
+              "3/4 ounce sweet vermouth"
+            ],
+            "preparation": "Stir with ice and strain into a chilled cocktail glass.",
+            "presentation": "Cocktail glass, garnished with lemon twist",
+            "history": "The Corpse Reviver family of cocktails is part of the \"hair of the dog\" genre. \"Corpse reviver\" originally referred to a dram of mixed spirits. This drink appears in London's 1861 Punch Magazine, where the entire family of hair of the dog remedies was chronicled. Layered Corpse Reviver cocktails including spirits like Chartreuse, Maraschino, and walnut liqueurs appeared on Parisian menus by 1863, and this recipe first appeared in The Gentleman's Table Guide (1871) by E. Ricket and C. Thomas.\nIn 1930, Harry Craddock included the Corpse Reviver No. 1 and his No. 2 in The Savoy Cocktail Book. For No. 1, he recommend it \"be taken before 11am, or whenever steam and energy is needed.\"",
+            "preparationsAndVariations": "As with any hangover cure, there are many variations on the Corpse Reviver. The Kentucky Corpse Reviver is the same as the No. 2 but, predictably, swaps bourbon for gin. The Savoy Corpse Reviver was invented in 1954 not by Harry Craddock but another famous Savoy bartender, Joe Gilmore, who was head barman from 1954 to 1976. His rendition is a layered drink more akin to the original Parisian Corpse Revivers of the 1860s, layering equal portions of brandy, Fernet Branca, and white crème de menthe. Today, the No. 2 is the most popular drink."
+          },
+          {
+            "name": "Daiquiri",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "2 ounces rum",
+              "3/4 ounce lime juice",
+              "3/4 ounce simple syrup"
+            ],
+            "preparation": "Shake all ingredients with ice and strain.",
+            "presentation": "Cocktail glass, garnished with lime wedge/wheel",
+            "history": "The Daiquiri takes its name from its birthplace, Daiquiri Beach, Cuba. This small town was one of the first landing sites for American businesses after the Spanish-American War in 1898. The cocktail was enjoyed locally by engineers and mine owners alike until 1909, when Admiral Lucius Johnson visited Cuba and was offered this drink by the engineer Jennings Cox. Admiral Johnson then introduced the cocktail to the Army and Navy Club in Washington D.C., and its popularity in the states grew from there.",
+            "preparationsAndVariations": "The original Daiquiris on Daiquiri Beach were often in tall glasses packed with ice. First, a teaspoon of sugar was poured on top of the ice, followed by the juice of one or two limes and a healthy portion of rum. The drink was stirred with a long spoon until the glass frosted.\nAs the Daiquiri moved around the US, its variations multiplied. The drink was published in Hugo Ensslin's Recipes for Mixed Drinks (1916) under the name Daiguiri and called for lime juice, grenadine, and rum. Other popular variations include the Hemingway Daiquiri, with white rum, grapefruit and lime juices, and Maraschino liqueur, and the Floridita Daquiri, which calls for Maraschino as well as sugar and leaves out the grapefruit.\nMany adjust the sugar-to-lime juice ratio to create a drier or sweeter cocktail. Depending on the quality of your limes, or the particular rum of choice, this may be necessary. However, using equal parts of citrus and sugar typically yields a balanced cocktail."
+          },
+          {
+            "name": "Delmonico",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "3/4 ounce gin",
+              "1/2 ounce Cognac",
+              "1/2 ounce dry vermouth",
+              "1/2 ounce sweet vermouth",
+              "2 dashes Angostura bitters"
+            ],
+            "preparation": "Stir all ingredients with ice and strain.",
+            "presentation": "Cocktail glass, garnished with lemon twist",
+            "history": "The first documentation of this recipe is in Cocktail Boothby's American Bartender (1891) and Kappeler's Modern American Drinks (1895). Dave Wondrich believes the cocktail mostly likely first appeared in 1876 at the Madison Square location of Delmonico's.",
+            "preparationsAndVariations": "The 1935 edition of the Waldorf-Astoria Bar Book presents a recipe of equal parts gin and French vermouth with two slices of orange peel, claiming it was adapted from an old Delmonico's recipe. In modern cocktail books, the ratio of gin to vermouth varies. Vermouth cocktails like this were very popular in the 1870s and 1880s, and while all four ingredients may have originally been used in equal parts, the above is Dave Wondrich's version. Still other versions recommend a full ounce of gin."
+          },
+          {
+            "name": "Dubonnet Cocktail",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "1 1/2 ounces gin",
+              "1 1/2 ounces Dubonnet Rouge",
+              "Dash of bitters"
+            ],
+            "preparation": "Stir all of the ingredients with ice and strain.",
+            "presentation": "Cocktail glass, garnished with lemon twist",
+            "history": "Dubonnet was created in an 1846 competition launched by the French Government that sought to persuade members of the French Foreign Legion in North America to drink quinine. It was famously enjoyed by Queen Elizabeth The Queen Mother at the ratio of two parts gin to one part Dubonnet. Queen Elizabeth II mixes the two in equal parts.",
+            "preparationsAndVariations": "Personalizing the ratio of gin to Dubonnet is the primary way of riffing on this formula."
+          },
+          {
+            "name": "French 75",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "1 1/2 ounces gin",
+              "3/4 ounce lemon juice",
+              "1/2 ounce simple syrup",
+              "Champagne"
+            ],
+            "preparation": "Shake gin, lemon juice, and simple syrup with ice and strain into ice-filled glass or chilled flute. Top with Champagne.",
+            "presentation": "Highball glass or flute, garnished with lemon twist",
+            "history": "The French 75 is said to be named after the 75 mm French field gun used during WWI. It appeared in 1919 in The ABC of Mixing Drinks, by Harry MacElhone of Harry's American Bar in Paris. MacElhone credited it to a bartender named MacGarry of Buck's Club in London",
+            "preparationsAndVariations": "The original drink was identical to a Tom Collins except for the substitution of Champagne for soda water. Thus, many argue for the highball or collins glass as most traditional, and for serving the drink on the rocks. Nonetheless, it more often appears in a Champagne flute. Cognac can be substituted for the gin."
+          },
+          {
+            "name": "Gibson",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "2 1/2 ounces gin",
+              "1/2 ounce dry vermouth"
+            ],
+            "preparation": "Stir ingredients with ice and strain.",
+            "presentation": "Cocktail glass, garnished with pearl onion",
+            "history": "The first published recipe for the Gibson cocktail appears in William Boothby's The World's Drinks and How to Mix Them (1908). The original recipe stood in contrast to the Gin Martini by being equal parts gin and dry vermouth. Original takes on the Martini at the end of the 19th century and into Prohibition would include a compulsory addition of bitters. Boothby notes, \"No bitters should ever be used in this cocktail, but an olive may sometimes be.\"\nThe Old Waldorf-Astoria Bar Book (1935) offers two versions, both with only dry vermouth and gin and finished with a squeeze of an orange peel. The original is made with equal parts vermouth and gin, and the No. 2 is one-third vermouth and two-thirds gin. The Savoy Cocktail Book (1930) follows suit, offering the 50/50 recipe with lemon peel.\nThe only claim for the creation of the Gibson is the one that appears in Walter Cambell Gibson's 1964 obituary in the New York Times. He was a stockbroker who claimed to have created the cocktail at the Ritz bar in Paris. It's also important to note that the most distinct ingredient of the modern Gibson wasn't prescribed until decades after it became a popular cocktail. The original was more about the removal of bitters than the addition of a cocktail onion.",
+            "preparationsAndVariations": "The recipe listed above will please most who order a Gibson. The ratio of vermouth to gin can be adjusted on a per-guest basis. Cocktail onions can be purchased easily, but bars that choose to pickle their own pearl onions often make a delicious version. Some even add a dash of the brine in the cocktail."
+          },
+          {
+            "name": "Gin Fizz",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "2 ounces gin",
+              "3/4 ounces lemon juice",
+              "3/4 ounces simple syrup",
+              "Soda water"
+            ],
+            "preparation": "Combine the gin, lemon, and syrup in a cocktail shaker with ice. Shake and strain into a Collins glass, without ice. Top with soda water.",
+            "presentation": "Collins glass",
+            "history": "Historically, this type of drink was consumed in the morning, so a Collins glass on the smaller end of the spectrum would be appropriate.",
+            "preparationsAndVariations": "The fundamental difference between a fizz and a Collins is whether or not ice is used. Additionally, a Collins is built directly in the glass, while the fizz is shaken. Some variations on the Collins include the Silver Fizz (use of an egg white), the Golden Fizz (use of an egg yolk), the Royal Fizz (use of the whole egg), and the Diamond Fizz (substitute sparkling wine for soda water)."
+          },
+          {
+            "name": "Gin Rickey",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "2 ounces London Dry Gin",
+              "1 ounce lime juice",
+              "Soda water"
+            ],
+            "preparation": "Build the ingredients in an ice-filled glass.",
+            "presentation": "Highball glass, garnished with lime rind",
+            "history": "The Rickey cocktail was originally created in the 1880s at Shoomaker's Saloon by bartender George Williamson, in collaboration with Democratic lobbyist Colonel Joe Rickey. The original version was made with bourbon, and the cocktail didn't become popular until it was made with gin a decade later.\nThe first documented recipe for the Gin Rickey appears in Daly's Bartender's Encyclopedia (1903), by Tim Daly. It calls for the juice of one lime, one wine glass of Plymouth Gin, and a lump of ice and siphon seltzer. It was served with a bar spoon.",
+            "preparationsAndVariations": "The gin can be swapped out for many different spirits to make a different Rickey cocktail. Bourbon, rye, rum, and tequila are popular choices. Some later recipes call for a dash of Angostura bitters on top. The amount of lime juice can be adjusted to the guest's preference, but this recipe is based on the juice of one lime.\nThe Lime Rickey was a popular virgin drink at soda fountains on the East Coast."
+          },
+          {
+            "name": "Manhattan",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "2 oz. Rye Whiskey",
+              "1 oz. Sweet Vermouth",
+              "2 dashes Angostura Bitters"
+            ],
+            "preparation": "Stir all ingredients with ice and strain.",
+            "presentation": "Cocktail Glass, Cherry",
+            "history": "The tale often told about the origin of the Manhattan takes place at a party Jenny Jerome(Lady Randolph Churchill-Winston Churchill's mother) threw for Presidential candidate Samuel Tilden in 1874.  However, more accurate historic accounts place Jerome in France at that time, and pregnant. \nEarlier references site a bartender with the last name, Black, having made the drink at a bar near the intersection of Houston and Broadway in the 1860s. ",
+            "preparationsAndVariations": "The original recipes often included the addition of simple syrup to the mix of Italian Vermouth and Whiskey-sweet vermouth wasn't always as sweet as it is today.  The type of bitters used would vary from bar to bar, and originally the popular choice was orange bitters sometimes blended with Angostura.  The garnishes used can vary from orange peel, to a maraschino cherry. \nDuring prohibition, Canadian Whiskey became a popular base while the use of Irish Whiskey was referred to as the Manhattan No. 2. "
+          },
+          {
+            "name": "Martinez",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "1.5 oz. Old Tom Gin",
+              "1.5 oz. Sweet Vermouth",
+              "0.25 oz. Maraschino Liqueur",
+              "2 dashes orange bitters (or Boker's)"
+            ],
+            "preparation": "Stir all ingredients with ice and strain.",
+            "presentation": "Cocktail Glass, Twist of Lemon or Orange",
+            "bartenderComments": "Generally credited as the forerunner to the dry Martini. At the time of its invention in the 1880s, Genever was the prevalent gin and can be presumed to be the \"gin\" referenced in the original 1884 recipe. This same recipe also called for \"2 dashes of Curacoa [sic],\" not Maraschino, thus the recipe could be viewed as a precursor to the Martinez as we understand it today."
+          },
+          {
+            "name": "Martini",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "2.5 oz. Gin",
+              "1/2 oz. Dry Vermouth"
+            ],
+            "preparation": "Stir ingredients with ice and strain into chilled glass.",
+            "presentation": "Cocktail Glass, Olives or Lemon Peel",
+            "bartenderComments": "There is no shortage of information and opinion regarding the most iconic of mixed drinks. You'll have to do your own research on this one."
+          },
+          {
+            "name": "Mint Julep",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "2 oz. Bourbon",
+              "10-12 Mint Leaves",
+              "1/2 oz. Simple Syrup"
+            ],
+            "preparation": "Add syrup and mint leaves to the base of the glass and muddle. Add crushed ice and 1 oz. of the bourbon the glass and mix with a bar spoon. Add more crushed ice and the rest of the bourbon to the glass, mixing again. Cap with crushed ice and garnish with two mint sprigs. Arrange the straws next to the mint sprigs.",
+            "presentation": "Silver or Pewter Julep Mug, Mint",
+            "bartenderComments": "2 oz. may seem a bit scant at first glance, but there is a lot of crushed ice to provide dilution. That being said, I recommend a bourbon with a higher proof (100 proof or higher) works best. The cocktail's name is supposedly derived from the Arabic julab, or \"rose water.\" When adding the mint sprigs for garnish, \"wake\" them by whacking them against your hand."
+          },
+          {
+            "name": "Mojito",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "1.5 oz. White Rum",
+              "3/4 oz. Lime Juice",
+              "2 tsp. Sugar",
+              "8-10 Mint Leaves",
+              "Soda Water"
+            ],
+            "preparation": "Muddle mint, lime and sugar, add ice and rum.  Shake briefly and pour into a fresh glass.Top with fresh ice before adding the soda water. ",
+            "presentation": "Lowball or Highball Glass, Mint Sprig",
+            "history": "The Mojito may have the oldest origin of any modern day cocktail, though it didn't always go by the same name.  In 16th century Havana, Cuba a drink known as El Draque was consumed by many sailors, and originally by the crew of Sir Francis Drake's fleet after their raid at the Cartegna de Indias in 1586. The El Draque was prescribed to prevent scurvy, and consisted of Aguardente de Caña (fire water from sugar cane) lime juice, sugar cane juice and mint. IN the 1650's tafia(an un-aged harsh rum) and rum where available to the British, and the mixture followed.  \nA contending story says that African slaves working on Cuban sugarcane fields created the drink during the 1800's.",
+            "preparationsAndVariations": "Contrary to belief, it is not necessary to muddle the mint into a paste to release all of its aroma.  The granulated sugar can be replaced by simple syrup. The cocktail often looks best when served in a glass completely full of ice. A more laborious, but maybe better way to create the drink is to shake the mixture and strain over new ice in a glass with a few freshly torn mint leaves.\nSince the original version of this drink did not include soda water, and the amount of soda water added is often the largest variable, it is recommended to think about this drink in both long and short versions."
+          },
+          {
+            "name": "New York Sour",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "2 oz. Rye or Bourbon",
+              "3/4 oz. Lemon Juice",
+              "3/4 oz. Simple Syrup",
+              "One Egg White",
+              "1 oz. Red Wine (fruit-driven)"
+            ],
+            "preparation": "Shake all ingredients except for the wine vigorously and strain into an ice filled glass.",
+            "presentation": "Old Fashioned Glass. Use the back of a bar spoon to gently layer the red wine on top of the drink. Garnish with a flag(orange/lemon slice with a cherry)",
+            "history": "This cocktail was first served under the guise of the Continental Sour in Chicago in the 1870's.  When the cocktail be came popular in the south, it was known as the Southern Whiskey Sour.  Once it made it's way up the east coast and to New York, the name New York Sour stuck with it.  ",
+            "preparationsAndVariations": "Like a standard whiskey sour, the inclusion of the egg white is a guest's preference. However the inclusion of the egg white will make for a more textural drink that allows the red wine float to actually float. "
+          },
+          {
+            "name": "Old Fashioned",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "2 oz. Spirit(Typically American Whiskey)",
+              "2 Dashes of Bitters",
+              "1 Sugar Cube"
+            ],
+            "preparation": "Add enough water to the sugar cube to dissolve with muddling. Add bitters and Spirits, stir with ice, and strain over fresh ice.",
+            "presentation": "Thick Bottomed Old Fashioned Glass",
+            "history": "The Old Fashioned and bitters themselves are considered by many to be the origin of the cocktail in America. Originally, the Old Fashioned was what you drank, and not the name by which you ordered it.  Sometimes it was referred to as a toddy or a bitter sling.  It always started with a sugar cube and a healthy amount of water to dissolve the sugar. \nIt wasn't only whiskey that was used in this cocktail, but this was how spirits were consumed if not straight from the bottle.  A bartender would mix Gin, Rum, Brandy or Whiskey with a sugar cube, water and their own house made bitters.  Bitters were proprietary recipes.  They were akin to what we now call decanter bitters-a carafe on the bar with a secret mix of spices and botanicals steeping in rum. The decanter would be topped up with spirit and bitter-ing agents along the way in an almost solera-like manner. It was these house made bitters that were consumed in the coquetille cup at apothecaries.\nIn the May 6th 1806 issue of the The Balance and Columbian Repository Hudson, NY publishes a reader-submitted letter asking what a cocktail is.  In the subsequent week's issue on May 13th 1806, the editor responded stating that ''It was a potent concoction of Spirits, Bitters, Water and Sugar.\" The editor also remarked that it was also referred to a s a bitter sling. In 1833, J.E. Alexander's Transatlantic Sketches Vol.2 notes that he encountered it in New York City.  He described it as being Gin, Rum or Brandy, and including significant water, sugar and bitters.  He also mentioned nutmeg as a garnish, which would lead one to believe that he experienced the original toddy. \nBy the 1860's liqueurs and juices began to make their way into the cocktail and the Old Fashioned was a way patrons would order drinks without these additions. This cultural shift is highlighted in Dave Wonderich's Imbibe (2007) and an article published in the Chicago Tribune entitled \"The Democracy in Trouble (1880)\", where the Old Fashioned is mentioned as being made with Whiskey, and without the extras. The Old Fashioned does not appear in Jerry Thomas's 1887 Bardender's Guide but does appear in Boothby's The World's Drinks and How to Mix Them (1908) where he puts forth the recipe above.  There is no mention of spirit, but only the brand that the patron requests, and that while Boker's Bitters was his preference Angostura would suffice. \nIt is important to note that the addition of water came from an understanding of how to properly enjoy a spirit in a more balanced cocktail, and from a time before refrigeration and the availability of ice.  Similarly, the toddy wasn't originally hot.  It was a spiced combination of spirit and sugar dissolved in water.  ",
+            "preparationsAndVariations": "Today, we find a return to the classic with an Old Fashioned being made with Rum, Mezcal, Bourbon or any other spirit, and only containing sugar, bitters, and water (icemelt).  The citrus peel garnish is a recent advent that can be considered a part of the bitters ingredient. \nIt is important to remember that this cocktail went through a serious evolution.  The version including muddled maraschino cherries, orange wedges and ginger ale in a snifter surfaced in the 1930's after a rumored publishing error in a popular cocktail book skipped a page and included another cocktail's garnish under the Old Fashioned recipe. Whether this is a true story or not, this variation was popular through most of the 20th century.  It may be considered a delinquent now, but your guests may order this version and you should prepare it happily.  For anyone other than Julie, Dale, Audrey and Sasha that was tending bar 15-20 years ago, this was how you made an Old Fashioned. "
+          },
+          {
+            "name": "Pegu Club",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "2 oz. London Dry Gin",
+              "1/2 oz. Curaçao",
+              "1/2 oz. Lime Juice",
+              "1 dash Angostura Bitters",
+              "1 dash Orange Bitters"
+            ],
+            "preparation": "Shake all ingredients with ice and strain.",
+            "presentation": "Cocktail Glass, Lime Wedge",
+            "history": "The namesake cocktail of the world famous club that opened in 1885 just outside of Rangoon.  Named for the Pegu River that runs past it, the Pegu Club was built to serve British Military officers and Civilian Administrators after the UK annexation of Upper Burma.\nThe Pegu Club cocktail recipe is first documented in Barflies and Cocktails (1927) by Harry McElhorne of Harry's New York Bar in Paris, France.  By 1930 the cocktail was so well known that The Savoy Cocktail Book listing notes, \"The favorite cocktail of the Pegu Club, Burma, and one that has traveled and is asked for around the world.\"",
+            "preparationsAndVariations": "The Barflies and Cocktails  recipe prescribes the use of Rose's lime juice, while many other recipes makes no mention of the preferred type of lime juice."
+          },
+          {
+            "name": "Pimm's Cup",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "2 oz. Pimm's No. 1",
+              "1/2 oz. Lime Juice",
+              "1/2 oz. Lemon Juice",
+              "1/2 oz. Simple Syrup",
+              "1/2 oz. Gin",
+              "Soda Water"
+            ],
+            "preparation": "Muddle cucumber and simple syrup in tin. Add remaining ingredients, shake with ice, and fine-strain into a glass. Top with soda. ",
+            "presentation": "Highball Glass, Cucumber Slice, Mint Sprig",
+            "bartenderComments": "There are seemingly innumerable ways to create this classic cocktail. The simplest version calls for Pimm's, a slice of cucumber and lemon-lime soda. From there you can take lots of liberties, adding seasonal fruit/flowers (lemon, lime, orange, cucumber, strawberry, apple, borage, mint) and/or using different mixers (bitter lemon, ginger beer or ginger ale). There is of course a strong association between the Pimm's Cup and Wimbeldon—but you don't have to be a tennis fan to enjoy the drink."
+          },
+          {
+            "name": "Pink Gin",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "2 oz. Plymouth Gin",
+              "3-4 dashes Angostura bitters"
+            ],
+            "preparation": "Stir with ice and strain.",
+            "presentation": "Cocktail Coupe, Lemon Twist (Optional)",
+            "history": "The Pink Gin cocktail is generally considered to be a created by members of the British Royal Navy in the middle of the 19th century.  By the 1870's, it became a popular cocktail throughout the UK.",
+            "preparationsAndVariations": "Varying amounts of bitters can be used.  The earlier printed versions of the recipe call for one dash, while many prefer a larger dose.  Some enjoy 'rinsing' the serving glass with bitters, while others will combine the bitters and gin before stirring. There have been different 'longer' versions of the Pink Gin which include the addition of ice and water, and the 'Pink and Tonic'."
+          },
+          {
+            "name": "Presbyterian",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "2 oz. Scotch Whisky",
+              "Ginger Ale"
+            ],
+            "preparation": "Pour Scotch over ice and fill with equal parts ginger ale and soda water.",
+            "presentation": "Highball Glass",
+            "history": "Many believe this cocktail to have been originally made with French Brandy. However, after Phylloxera destroyed the European vineyard Cognac disappeared from bars as well.  When Scotch was used as a supplement, the official Scottish denomination of Christianity became the name of this drink too.  ",
+            "preparationsAndVariations": "Today, many guests will 'call' their spirit or brand of choice for a Presbyterian though it is more common to order a 'Jack and Ginger' not a Jack Daniels Presbyterian. \nThe Presbyterian is thought  by some to distinguish itself from a plain spirit and ginger ale mixture by cutting the ginger beer with soda water."
+          },
+          {
+            "name": "Ramos Gin Fizz",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "1.5 oz. Dry Gin",
+              "5 drops Orange Flower Water",
+              "1/2 oz. Lemon Juice",
+              "1/2 oz. Lime Juice",
+              "1 Egg White",
+              "1 oz. Heavy Cream",
+              "1 oz. Simple Syrup",
+              "Soda Water",
+              "2 drops Vanilla Extract (optional)"
+            ],
+            "preparation": "Vigorously shake all ingredients except soda water and strain into glass without ice. Top with soda water.",
+            "presentation": "Highball Glass, Grated Nutmeg",
+            "bartenderComments": "This drink isn't as difficult to make as some make out. Just be sure to shake thoroughly and use a bar spoon to stir in the soda water as it is added. Great with brunch."
+          },
+          {
+            "name": "Rob Roy",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "2 oz. Blended Scotch Whisky",
+              "1 oz. Sweet Vermouth",
+              "1 dash Angostura Bitters"
+            ],
+            "preparation": "Stir all ingredients with ice and strain into chilled glass.",
+            "presentation": "Cocktail Glass, Cherry",
+            "bartenderComments": "Essentially a scotch-based Manhattan. I feel there is a greater range of diversity among styles and profiles of blended scotch than there is among bourbon and rye, which means there are a lot of ways to personalize your Rob Roy. I like the malt-forward characteristic and integrated smoke of Johnnie Walker Black Label for my base spirit. As with the Manhattan, you can opt for a drier version by substituting dry vermouth for sweet."
+          },
+          {
+            "name": "Sazerac",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "2 oz. Sazerac Rye Whiskey",
+              "5 Dashes Peychaud's Bitters",
+              "Splash of Absinthe",
+              "Half of a  Sugar Cube"
+            ],
+            "preparation": "Chill the low ball glass with ice water. \nMuddle the sugar cube and a splash of water in a mixing glass \nPour the icewater out of the lowball glass and add absinthe to rinse the glass.  The residual water in the glass should cause the absinthe to loosh, and therefore become more aromatic.  Add whiskey, bitters and the lemon peel to the mixing glass with the muddled sugar and bitters and stir with ice to chill.  \nStrain into the absinthe rinsed lowball glass. ",
+            "presentation": "Lowball Glass",
+            "history": " In 1850, Sewell Taylor sold his Merchant Exchange Coffee House to Aaron Bird so that he could begin an import business.  One of Taylor's imported products was Sazerac de Forge et Fils Cognac.  Bird purchased bitters from Antopin Peychaud's apothecary, and Cognac from Taylor and served the Sazerac in his newly re-named Sazerac Coffee House. The Sazerac cocktail is known as the very first branded cocktail.\nAccording to Arthur Stanley's Famous New Orleans Drinks and How to Mix 'em (1997), the Sazerac Coffee House changed hands many times.  In 1870, Thomas Handy purchased the Sazerac Coffee House and changed the recipe to include whiskey.  The growing phylloxera epidemic was driving up Cognac prices, and the main reason why Handy switched his Sazerac recipe to use whiskey.  The Cognac-Rye blend version lasted only a short while before the cocktail became one of Rye Whiskey and Absinthe. \nBefore Handy died in 1889, he recorded his recipe and it appears in Boothby's The World's Drinks and How to Mix Them(1908).This is the recipe that we have included above.\n1912 brought the US Absinthe ban, and it was replaced by anise flavored liqueurs.  Herbsaint-which translates to worm wood-was a Pastis marketed as being made according to an old French recipe first produced in 1934, and became the favorite Absinthe replacement. \nThe Sazerac's riff on the original whiskey or cognac cocktail of spirit, sugar, water and bitters is known to be the first cause for patrons uninterested in something new to order a drink the \"Old Fashioned Way\".",
+            "preparationsAndVariations": " The recipe and the preparation above is taken from what is considered to be the first recorded recipe of the Sazerac.  There is no published recipe that uses cognac, only old text.  \nThis recipe calls for the addition of water when muddling the sugar cube.  Today, many bartenders like to add the bitters instead.  The original recipe calls for 2 dashes of bitters, and today many bartenders like to use more.  The chilling of the glass, and the absinthe rinse has never changed.  And the lemon peel is sometimes used as a garnish rather than being stirred with the ingredients and discarded. \nYour guest may only know the Sazerac as a Rye Whiskey cocktail. If you choose to offer different versions, be sure to ask your guest for their preference in a way that doesn't alienate them for not knowing the variations. "
+          },
+          {
+            "name": "Sherry Cobbler",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "3 1/2 ounces Amontillado Sherry",
+              "1/2 table spoon of sugar",
+              "2-3 orange slices"
+            ],
+            "preparation": "Muddle the orange slices and sugar at the bottom of the serving glass.  Add the sherry on top and cover with crushed (cobbled) ice.",
+            "presentation": "Cobbler or Old Fashioned glass, various citrus fruits and berries.  Always serve with a straw.",
+            "history": "The exact origin of the Cobbler is unknown, though historian Dave Wondrich is able to place it at least to the 1830's with an entry about the Sherry Cobbler in a random traveler's diary he came across. It's popularity spiked when Charles Dickens includes it in his 1844 The Life and Adventures of Martin Chuzzelwit. ",
+            "preparationsAndVariations": " The fruit at the bottom, blends of different sherrys, and the many bitters, vermouths and liqueurs that can be added and changed in this foundation cocktail present an endless amount of variation fun. Some recipes recommend shaking the ingredients, but you don't want to water the sherry down before serving.  Crushed ice melts fast enough. It is important that the cocktail is drank through a straw so it can be enjoyed in layers from the bottom-up. "
+          },
+          {
+            "name": "Singapore Sling",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "2 oz. Gin",
+              "3/4 oz. Cherry Heering",
+              "2 tsp. Benedictine",
+              "2 tsp. Cointreau",
+              "2 oz. Pineapple Juice",
+              "3/4 oz. Lime Juice",
+              "2 dashes Grenadine",
+              "1 dash Angostura Bitters",
+              "Soda Water"
+            ],
+            "preparation": "Shake all ingredients except soda water with ice and strain into glass filled with ice. Top with Soda Water.",
+            "presentation": "Hurricane Glass, Cherry, Pineapple Slice, and Orange",
+            "bartenderComments": "Unless you find yourself at the bar in the Raffles Hotel, don't bother."
+          },
+          {
+            "name": "Stinger",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "2 oz. Brandy",
+              "1 oz. white créme de menthe"
+            ],
+            "preparation": "Stir with ice in a mixing glass and strain.",
+            "presentation": "Cocktail coupe",
+            "history": "Though to be derived from a cocktail known as The Judge (brandy, simple syrup and créme de menthe), the Stinger was a popular upper class cocktail from the 1890's through the 1970's.  ",
+            "preparationsAndVariations": " The 2:1 ratio is often changed to a drink of equal parts.  Variations include the Amaretto Stinger where the brandy is replaced by Amaretto, the Mexican stinger which swaps tequila for the brandy, and the White Spider-a more mint forward drink based on vodka and créme de menthe."
+          },
+          {
+            "name": "Tipperary",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "1 oz. Irish Whiskey",
+              "1 oz. Sweet Vermouth",
+              "1 oz. Green Chartreuse"
+            ],
+            "preparation": "Stir ingredients with ice and strain.",
+            "presentation": "Cocktail Glass, Cherry",
+            "history": "The first publication of this recipe appears in Hugo Enslslin's Recipes for Mixed Drinks (1916).  It calls specifically for Bushmills, and also recommends shaking the cocktail.",
+            "preparationsAndVariations": "The equal parts of this recipe are part of it's personality, however this is often changed. The choice of Irish Whiskey is an important one as is the type of vermouth used. The Savoy Cocktail Book (1930) includes 2 recipes, the one above, and the No.2- 1 ounce each of gin and dry vermouth, and .5 ounce each of grenadine and orange juice to be shaken with 2 sprigs of mint.  This second recipe is sometimes confused for the original."
+          },
+          {
+            "name": "Tom and Jerry",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "12 eggs",
+              "3 oz. over proof Jamaican Rum",
+              "1 1/2 Tsp ground cinnamon",
+              "1/2 tsp ground cloves",
+              "1/2 tsp ground all spice",
+              "granulated sugar"
+            ],
+            "preparation": "Separate the yolks from whites.  Beat the whites stiff, and the yolks until watery.  Combine the yolks and whites and mix thoroughly while adding all of the spices and rum.  Then, while mixing add sugar until the mixture achieves a batter like texture. This base will keep well refrigerated as it is full of sugar and alcohol.",
+            "presentation": "Take 1 table spoon of the batter, add 2 ounces of brandy and stir in boiling water to desired dilution based on taste.  Serve with a spoon in a mug. ",
+            "history": "While Jerry 'The Professor' Thomas is always associated with this drink, its original form was created by an 1820's  British journalist named Pierce Egan.  It was, and has always been a variant on a traditional egg nog. Egan's original recipe called for the whipping of eggs, brandy, spices and sugar to be cut with hot water rather than be diluted by the standard method of shaking the ingredients with with ice.  Jerry Thomas took the cocktail and pushed it to greatness by simply employing some basic culinary techniques to achieve a completely different texture. We have put forth the recipe that he published in his Bar-Tenders Guide(1887).",
+            "preparationsAndVariations": " Mr. Thomas adds that when mixing in the sugar, a few ounces of soda water will help keep the sugar from settling on the bottom.  You can also substitute a rich 2:1 gomme syrup made from either white or Demerara sugar.  He also sites a variation for the \"adept patrons\" where the brandy is reduced and blend of different rums are added when serving. \nThe recipe for the base above can be reduced in size to keep it fresh. \nOther modern variations replace the hot water with hot milk, and even hot cocoa. "
+          },
+          {
+            "name": "Ward 8",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "2 oz. Rye Whiskey",
+              "1/2 oz. Lemon Juice",
+              "1/2 oz. Orange Juice",
+              "1/4 oz. Grenadine"
+            ],
+            "preparation": "Shake and strain into an ice-filled glass.",
+            "presentation": "Old Fashioned Glass, Cherry",
+            "history": "This cocktail was first created in 1898 at the Locke-Ober restaurant in Boston Massachusetts. The cocktail was named to celebrate the part of town that notably gave Martin Lomasney a political victory that propelled his 50-year career in Massachusetts politics. In 1915 the Boston based Santa Clara Company registered the cocktail as its trademark.  However, this was later debunked by the Boston Globe during prohibition, proving its origin to be the Locke-Ober Restaurant.",
+            "preparationsAndVariations": "The variations on this cocktail only come in the form of adjustments to its proportions."
+          },
+          {
+            "name": "Whiskey Sour",
+            "era": Era.PRE_PROHIBITION,
+            "ingredients": [
+              "2 oz. Bourbon or Rye Whiskey",
+              "3/4 oz. Lemon Juice",
+              "3/4 oz. Simple Syrup"
+            ],
+            "preparation": "Shake and strain into an ice-filled glass.",
+            "presentation": "Old Fashioned Glass, Cherry, Half Orange Wheel",
+            "bartenderComments": "When in doubt, turn to David Wondrich for a historical take: \"The whiskey sour is the fried-egg sandwich of American mixology: simple, dull, reliable in a pinch...a cocktail in its undershirt.\" Not the most laudatory of descriptions, but accurate. If you like to smooth out this sour with an egg white then serve it in a cocktail glass. As with just about any cocktail using egg whites you should add something aromatic to the top of the drink, some bitters or a bit of citrus peel to combat the, well, \"eggyness\" that eventually settles in the drink."
+          },
+
+          // Prohibition
+          {
+            "name": "Abbey",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "1½ ounces gin",
+              "¾ ounce orange juice",
+              "¾ ounce Cocchi Americano",
+              "2 dashes bitters"
+            ],
+            "preparation": "Shake all ingredients with ice and strain.",
+            "presentation": "Serve in a cocktail coupe, garnished with a cherry.",
+            "history": "This cocktail was first documented in the original printing of The Savoy Cocktail Book (1930). Although its origin is unknown, many believe it was created during Prohibition, around the bathtub gin culture. This was a popular brunch cocktail.",
+            "preparationsAndVariations": "The original recipe called for Kina Lillet, which incorporated quinine. Since Kina Lillet is no longer available, Cocchi Americano is listed instead. Lillet Blanc or a dry vermouth can also be used."
+          },
+          {
+            "name": "Antibes",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "2 ounces gin",
+              "¾ ounce Bénédictine",
+              "1 ounce grapefruit juice"
+            ],
+            "preparation": "Shake all ingredients with ice and strain into glass.",
+            "presentation": "Old-fashioned glass, garnished with orange slice",
+            "history": "Antibes, a town between Cannes and Nice along the French Riviera, was briefly home to F. Scott Fitzgerald and his family. Ernest Hemingway and Pablo Picasso were among his many guests there. Some say that this is a drink that Hemingway made when he wanted to drink a daiquiri but didn’t have any rum.",
+            "preparationsAndVariations": "Another, milder version of this cocktail calls for simple syrup in place of Bénédictine and is served up like a daiquiri, garnished with a sprig of mint. But the use of Bénédictine seems much more in line with Hemingway’s cocktail preferences."
+          },
+          {
+            "name": "Bee’s Knees",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "1½ ounces gin",
+              "¾ ounce honey",
+              "¾ ounce lemon juice"
+            ],
+            "preparation": "Shake all ingredients with ice and strain.",
+            "presentation": "Cocktail glass, garnished with lemon twist",
+            "history": "The Bee’s Knees, born during Prohibition to mask the off-flavors and aromas of poorly made and often adulterated spirits, was at the center of bathtub gin culture. There is not a particular place or person associated with the cocktail’s origin, rather only a name that was Prohibition-era slang for “the best.”",
+            "preparationsAndVariations": "The honey will not incorporate if added alone and undiluted. It can be diluted with an equal part of hot water or hot simple syrup, depending on its sweetness. The syrup should create the perfect sugar/acid balance when combined with lemon juice. Be sure to keep the honey syrup chilled if preparing it in advance."
+          },
+          {
+            "name": "Blood and Sand",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "¾ ounce Scotch whisky",
+              "¾ ounce sweet vermouth",
+              "¾ ounce cherry Heering",
+              "¾ ounce orange juice"
+            ],
+            "preparation": "Shake all ingredients with ice and strain.",
+            "presentation": "Cocktail glass, garnished with orange twist (flamed)",
+            "history": "The Blood and Sand first appeared in print in The Savoy Cocktail Book (1930) and is said to be named for the 1922 Rudolph Valentino silent film Blood and Sand, which is about Spanish bullfighting. The original recipe makes no recommendation for the type or brand of Scotch whisky.",
+            "preparationsAndVariations": "Some of the recipes published after the original call for blood orange juice. There are also recipes altered to include a half ounce each of cherry Heering and sweet vermouth and one ounce each of Scotch and orange juice, rather than equal parts of all four. In modern cocktail bars, the drink is sometimes made using specific single malts instead of blended Scotch, or simply by floating a peaty single malt on top."
+          },
+          {
+            "name": "Bloody Mary",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "1½ ounces vodka",
+              "4 ounces tomato juice",
+              "½ ounce lemon juice",
+              "½ teaspoon horseradish",
+              "3 dashes Tabasco sauce",
+              "3 dashes Worcestershire sauce",
+              "salt to taste",
+              "cracked black pepper to taste",
+              "celery salt to taste"
+            ],
+            "preparation": "Build the drink in a mixing glass and roll with ice to mix and chill.",
+            "presentation": "Highball glass. A celery stick is mandatory; other garnishes are optional.",
+            "history": "A few people claim to have developed this brunch staple. Fernand Petiot originally claimed to have created it in 1921 at the New York Bar in Paris (before it became Harry’s New York Bar). But according to the St. Regis Hotel in New York, where he later bartended at the King Cole Room, Petiot said he merely initiated the modern Bloody Mary in 1934. The simple mixture of vodka and tomato juice was already a known drink served at the 21 Club.",
+            "preparationsAndVariations": "The Bloody Mary may be the most varied cocktail of all time, with bartenders using unique blends of spices, sauces, pickles, juices, bitters, and spirits. This recipe lists the most common components, and it is a foundation for continued variation."
+          },
+          {
+            "name": "Bobby Burns",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "1¼ ounces blended Scotch whisky",
+              "¾ ounce sweet vermouth",
+              "1 dash orange bitters",
+              "1 dash absinthe"
+            ],
+            "preparation": "Stir all ingredients with ice and strain.",
+            "presentation": "Cocktail glass, garnished with lemon twist",
+            "history": "This drink has two origin stories. It first appeared in The Savoy Cocktail Book (1930), by Harry Craddock, where he offers a recipe with slightly different proportions and describes it as a commemoration of Robert Burns, a famed Scottish poet and countryman. Craddock says the drink is most popularly enjoyed on St. Andrew’s Day (November 30). In 1931, Albert Stevens Crockett published Old Waldorf Bar Days, containing the recipe above. He offers Craddock’s story of origin but also notes a cigar salesman by the same name who frequented the Waldorf Bar. Gary Regan, the great cocktail historian who died in 2019, uncovered a 1923 photo of a cigar shop sporting the branding of Robert Burns Cigars, giving substance to Crockett’s story.\nThe popular recipe used today and including Drambuie is taken from David Embury’s The Fine Art of Mixing Drinks (1953), in which he writes, “While Benedictine is often added, the use of Drambuie is preferable to Benedictine as it is made with a Scotch Whisky base.” He calls it an interesting variation on the Rob Roy.",
+            "preparationsAndVariations": "This drink has changed significantly since its first published version to what is often served today. Not once is the shortbread cookie accoutrement mentioned in any of these cocktail books, but it is probably a nice addition—and particularly excellent alongside proper blue cheese."
+          },
+          {
+            "name": "Boston",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "¾ ounce gin",
+              "¾ ounce apricot brandy",
+              "¼ ounce lemon juice",
+              "¼ ounce grenadine"
+            ],
+            "preparation": "Shake all ingredients with ice and strain.",
+            "presentation": "Cocktail coupe, garnished with lemon twist",
+            "history": "This cocktail first appears in the initial edition of Old Mr. Boston De Luxe Official Bartender’s Guide (1935).",
+            "preparationsAndVariations": "The original recipe, above, would today be considered a small cocktail. Doubling each ingredient is more suitable. The grenadine referenced is a reduced syrup of pomegranate juice and pomegranate molasses—Rose’s grenadine would not yield a very good Boston Cocktail. The ratio of grenadine to lemon juice can vary based on the sweetness and sourness preferred in the cocktail. Quality apricot brandy is important here. Rothman & Winter orchard apricot liqueur and Marie Brizard Apry are two widely available high-quality examples. "
+          },
+          {
+            "name": "Boulevardier",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "1 ounce bourbon",
+              "1 ounce sweet vermouth",
+              "1 ounce Campari"
+            ],
+            "preparation": "Stir all ingredients with ice and strain.",
+            "presentation": "Cocktail glass, garnished with orange twist",
+            "history": "Harry McElhone is generally credited for the cocktail, which is mentioned in his book Barflies and Cocktails (1927), though in its epilogue rather than as one of its standalone recipes.",
+            "preparationsAndVariations": "Bourbon takes center stage instead of gin in this cocktail made in the Negroni mold. This rendition carries deeper bass notes, which may place it outside the aperitif category. Adjust the amount of whiskey to suit your guests’ palates."
+          },
+          {
+            "name": "Champs Élysées",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "1 1/2 ounces Cognac",
+              "1/2 ounce lemon juice",
+              "1/2 ounce green Chartreuse",
+              "1/2 ounce simple syrup",
+              "Dash of Angostura bitters"
+            ],
+            "preparation": "Shake all ingredients with ice and strain.",
+            "presentation": "Cocktail glass, garnished with lemon twist",
+            "history": "This cocktail first appeared in Harry Craddock's The Savoy Cocktail Book (1930), which does not specify the type of Chartreuse. The book's recipe is for a six-person cocktail, converted here to a single serving.",
+            "preparationsAndVariations": "Substituting yellow Chartreuse can be interesting; a slightly larger amount can be used."
+          },
+          {
+            "name": "Corpse Reviver No. 2",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "3/4 ounce gin",
+              "3/4 ounce Cointreau",
+              "3/4 ounce Lillet Blanc",
+              "3/4 ounce lemon juice",
+              "1 dash absinthe"
+            ],
+            "preparation": "Shake all ingredients with ice and strain into the glass.",
+            "presentation": "Cocktail glass, garnished with cherry; the absinthe can be withheld and used to rinse glass",
+            "history": "This is the Harry Craddock variation on the original Corpse Reviver (No. 1); both appeared in his 1930 The Savoy Cocktail Book. The Corpse Reviver family of cocktails is part of the \"hair of the dog\" genre. \"Corpse reviver\" originally referred to a dram of mixed spirits, and to any hangover cure.",
+            "preparationsAndVariations": "This cocktail is a variation on the No. 1. In the 1860s, layered versions were popular in Parian bars. The Savoy Cocktail Book warns of this recipe, \"Four of these taken in swift succession will unrevive the corpse again.\""
+          },
+          {
+            "name": "Death in the Afternoon",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "Desired serve of absinthe",
+              "Ice-cold Champagne"
+            ],
+            "preparation": "Add enough Champagne to the absinthe that the drink turns cloudy.",
+            "presentation": "Champagne flute, or preferred vessel",
+            "history": "This cocktail first appears in So the Red Nose, or Breathe in the Afternoon (1935), a collection of cocktail recipes from 30 prominent authors of the time. This entry belongs to Ernest Hemingway, and he recommends, \"Drink 3 to 5 of these slowly.\" He goes on to say that the cocktail was created along with three officers of the H. M. S. Danae after he spent hours helping them get the captain's fishing boat back to safety. The entry goes on to list some of Mr. Hemingway's more notable achievements.",
+            "preparationsAndVariations": "While the original recipe recommends pouring the Champagne on top of the absinthe until it turns milky and opaque, the exact brand of absinthe should dictate this. Certain brands will float on top of the Champagne for a moment, turning the \"louche\" effect into a dramatic storm cloud. Some like to add sugar and bitters to the drink, making a deadly Champagne cocktail combination."
+          },
+          {
+            "name": "Dempsey Cocktail",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "1 ounce gin",
+              "1 ounce apple brandy",
+              "2 dashes of grenadine",
+              "2 dashes of absinthe"
+            ],
+            "preparation": "Shake all ingredients with ice and strain.",
+            "presentation": "Cocktail glass",
+            "history": "This Prohibition-era cocktail was named after Jack Dempsey, the world heavyweight boxing champion from 1919 to 1926. After his boxing career, in 1935, Dempsey opened a namesake restaurant in New York. The cocktail is said to have originated before that—perhaps in the time immediately after his career when he managed an underground casino and bar financed by Al Capone during the final years of Prohibition.",
+            "preparationsAndVariations": "The apple brandy or applejack used in many historic cocktails was at least 86 proof, while more recent versions of applejack have been 70 proof. Laird's recently changed its production methods to recreate the original brandy. The best options for this cocktail are Laird's Straight Apple Brandy Bottled in Bond 100 Proof or its Straight Applejack 86.\nA sweeter version of the drink omits the absinthe and increases the amount of grenadine."
+          },
+          {
+            "name": "El Presidente",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "1 1/2 ounce rum",
+              "3/4 ounce dry vermouth",
+              "1/2 ounce Curaçao liqueur",
+              "1 barspoon grenadine"
+            ],
+            "preparation": "Stir with ice and strain.",
+            "presentation": "Cocktail glass, garnished with orange peel",
+            "history": "This cocktail gained popularity in Cuba as Americans visited in increased numbers during Prohibition. It was likely created for one of two Cuban presidents: Mario García Menocal (1913–1921) or Gerardo Machado y Morales (1925–1933). The drink's creator is unknown, but its popularity in the US is thought to be aided by Pan American Airlines, to which Machado gave exclusive rights to the Florida-Havana route. In response, the airline served El Presidente cocktails on its flights.",
+            "preparationsAndVariations": "There are few variations on this cocktail, but some add acid for balance."
+          },
+          {
+            "name": "Fallen Angel",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "1 1/2 ounce gin",
+              "1 teaspoon crème de menthe (white)",
+              "Juice of 1 lemon ",
+              "1 dash Angostura bitters"
+            ],
+            "preparation": "Shake all ingredients and strain.",
+            "presentation": "Cocktail glass, garnished with cherry",
+            "history": "The Fallen Angel appears in The Savoy Cocktail Book (1930) but not earlier, placing it into the Prohibition era. Its specific origin is unknown. The entry in The Savoy Cocktail Book notes, \"It has never been made clear as to whether this is intended to be taken by the Angel before or after falling; as an encouragement or as consolation.\"",
+            "preparationsAndVariations": "The recipe in The Savoy Cocktail Book recommends the juice of one lemon or half of a lime. White crème de menthe is the traditional ingredient—keeping the drink in the angelic color scheme—but green is often used. A mint leaf can also be used as a garnish. "
+          },
+          {
+            "name": "Gimlet",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "2 ounces Plymouth Gin",
+              "3/4 ounce lime juice",
+              "3/4 ounce simple syrup "
+            ],
+            "preparation": "Shake all ingredients with ice and strain.",
+            "presentation": "Cocktail glass, garnished with wedge of lime",
+            "history": "Early versions of the drink called for equal parts gin and lime juice. The Savoy Cocktail Book, for example, includes a recipe with half Plymouth Gin and half Rose's Lime Juice Cordial. Modern palates, however, have dialed back the acid.",
+            "preparationsAndVariations": "While some might request a vodka Gimlet, that's a variation. As Sterling Archer says, the proper way to order a vodka Gimlet is to request \"vodka, combined with all the ingredients a sane person would use to make a Gimlet.\" For another variation, add two dashes of Angostura bitters to make a Bennet cocktail. "
+          },
+          {
+            "name": "Golden Dawn",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "3/4 oz. Gin",
+              "3/4 oz. Apricot Brandy",
+              "3/4 oz. Apple Brandy",
+              "3/4 oz. Orange Juice",
+              "Dash Grenadine"
+            ],
+            "preparation": "Add dash of grenadine to the bottom of the glass. Shake all other ingredients with ice and strain. ",
+            "presentation": "Cocktail Coupe, Cherry ",
+            "history": "  A prohibition-era cocktail named for the Rogers and Hammerstein operetta that debuted in 1927.  In 1930, the United Kingdom Bartender's Guild named it The World's Final Cocktail. This cocktail is often promoted by Marie Brizzard in favor of their Apry, a quality apricot brandy. ",
+            "preparationsAndVariations": "There are a variety of variations on the cocktail.  Some switch out the apple brandy out for whiskey, and others replace Grenadine with raspberry syrup, or créme de cassis. "
+          },
+          {
+            "name": "Greyhound",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "1.5 oz. Gin/Vodka",
+              "5 oz. Grapefruit Juice"
+            ],
+            "preparation": "Serve over ice.",
+            "presentation": "Highball Glass",
+            "bartenderComments": "Simple but tasty."
+          },
+          {
+            "name": "Hemingway Daiquiri",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "2 oz. White Rum",
+              "1 oz. Grapefruit Juice",
+              "1/2 oz Lime Juice",
+              "1/2 oz. Maraschino Liqueur"
+            ],
+            "preparation": "Shake all ingredients with ice and strain.",
+            "presentation": "Cocktail Glass, Lime Wedge/Wheel",
+            "history": "Constantino Ribalaigua Vert., bartender at La Floridita Bar in Havana, created this for Mr. Hemingway who was lovingly referred to as \"Papa\" around town. He often had cocktails created for him, and made some up himself too.  The tale about this popular take on the Daiquiri Beach legend says that when Hemingway tried his first Floridita Daiquiri(the classic plus Maraschino Liqueur) he exclaimed, \"That's good but I prefer mine with twice as much rum and no sugar!\". His nickname, and his request for essentially a double shot of Rum and a squeeze of lime dubbed this specific rendition the Papa Doble. Over time, they evolved the cocktail to the recipe you see above, and named it the Hemingway Special Daiquiri. ",
+            "preparationsAndVariations": "Many bartenders like to reduce the amount of Maraschino Liqueur, and add some simple syrup to put the Maraschino further in the background.  The amount of grapefruit juice is often adjusted, and the size is sometimes reduced to the standard three ounces.  However, the recipe put forth is what many consider to be the original."
+          },
+          {
+            "name": "Horse's Neck",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "2 oz. Bourbon",
+              "2-3 dashes Angostura Bitters",
+              "Ginger Ale"
+            ],
+            "preparation": "Build the ingredients in an ice-filled glass.",
+            "presentation": "Highball Glass, Lemon Twist",
+            "bartenderComments": "Originally intended to be a non-alcoholic beverage, the drink gets its kick from a nice glug of bourbon (although just about any whiskey will work). The garnish is really its defining characteristic: the easy way to create the \"horse's neck\" is to use a channel knife to make an extra long lemon twist, making sure a bit of length peeks out of the glass. For those a bit more ambitious, use a paring knife to create a wider swath of lemon peel. Avoid the pith, and pare the lemon like you would an apple, creating one continuous peel."
+          },
+          {
+            "name": "Jack Rose",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "1 1/2 oz. Applejack or apple brandy",
+              "3/4 oz. lime juice",
+              "3/4 oz. grenadine"
+            ],
+            "preparation": "Shake all ingredients with ice and strain.",
+            "presentation": "Cocktail Coupe, lime wedge or wheel. ",
+            "history": "The first mention of the Jack Rose appears in a 1905 article within the National Police Gazette where New Jersey bartender Frank J. May is given credit for creating the cocktail.\nThere are a variety of stories for the origin of the name Jack Rose. Bald Jack Rose, a famous gambler in Atlantic City is thought to be the inspiration keeping the New Jersey spirit-based cocktail in line with its roots. Others believe that the Jacquemont or Jacques rose, (a naturally pink clone of the household red rose) is an inspiration, and others believe the name is just an appropriate description of a rose colored drink made from Applejack.",
+            "preparationsAndVariations": " It is important that the apple brandy used is at least 40% abv. There was a time when Applejack dropped below that number and was a bit sweeter, but Laird's has returned Applejack to its original alcoholic strength as of recently.  Some bartenders insist that the cocktail is made best with Laird's 100 proof bonded apple bandy instead. \nThe drink will not work with Rose's grenadine.  Grenadine made from a pomegranate reduction is a must.  Some substitute lemon juice for lime juice. "
+          },
+          {
+            "name": "Last Word",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "3/4 oz. Gin",
+              "3/4 oz. Lime Juice",
+              "3/4 oz. Green Chartreuse",
+              "3/4 oz. Maraschino Liqueur"
+            ],
+            "preparation": "Shake all ingredients with ice and strain.",
+            "presentation": "Cocktail Glass",
+            "bartenderComments": "Ted Saucier, in Bottoms Up, credits the Detroit Athletic Club for this beauty. In modern times we can thank the influence of the Pegu Club in NY as well as Seattle's Murray Stenson for proselytizing the good, and last, word."
+          },
+          {
+            "name": "Margarita",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "2 oz. Tequila",
+              "3/4 oz. Cointreau (or Combier)",
+              "3/4 oz. Lime Juice",
+              "Simple Syrup to taste (optional)"
+            ],
+            "preparation": "Shake all ingredients with ice and strain into salt-rimmed glass, with or without ice.",
+            "presentation": "Cocktail Glass, Lime Wedge",
+            "bartenderComments": "Although orange liqueur/triple sec is commonly used to sweeten the Margarita, international tequila ambassador Julio Bermejo has popularized the \"Tommy's Margarita,\" which uses agave nectar in place of the orange liqueur. Agave nectar is pretty thick stuff, so I'd advise thinning it out with an equal amount of water."
+          },
+          {
+            "name": "Mimosa",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "4 oz. Brut Champagne",
+              "2 oz. Orange Juice",
+              "1 barspoon Grand Marnier (optional)"
+            ],
+            "preparation": "Build all ingredients in the glass.",
+            "presentation": "Champagne Flute",
+            "bartenderComments": "\"It is not half-bad, and the ladies usually like it.\" - David Embury. As you can see, this bears a strong resemblance to the Buck's Fizz. Noted cocktail historian David Wondrich clears the air, noting that the fizz has a dash of grenadine while the Mimosa features a bit of Grand Marnier. But wait, that's different than the recipe cited by Robert Hess...oh Marone!"
+          },
+          {
+            "name": "Monkey Gland",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "1.5 oz. Gin",
+              "1/2oz. Orange Juice",
+              "3 dashes of  Grenadine",
+              "3 dashes of Absinthe"
+            ],
+            "preparation": "Combine all ingredients and shake with ice.",
+            "presentation": "Cocktail Coupe, Orange Twist",
+            "history": "Created in the 1920's by Harry MacElhone at Harry's New York bar in Paris, France. Harry is credited for the creation of the Boulevardier, the Bloody Mary, the French 75 and many other standards. \nThe cocktail is named after the pseudo-scientific idea hatched by Russian doctor, Serge Voronoff, that grafting tissue from a male monkey's genitalia to humans would help people to live longer.",
+            "preparationsAndVariations": "The above recipe is taken from The Savoy Cocktail Book (1930).  Variations include rinsing the serving glass with absinthe rather than mixing it with the other ingredients, adding more grenadine to sweeten the cocktail further, and igniting the expressed oils of the orange peel garnish(flamed orange peel)."
+          },
+          {
+            "name": "Napoleon Cocktail",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "2 oz. Gin",
+              "1/2 oz. Dubonnet Blanc",
+              "Dash Curaçao",
+              "Dash Fernet Branca"
+            ],
+            "preparation": "Stir all ingredients with ice and strain.",
+            "presentation": "Cocktail Coupe, Lemon Twist",
+            "history": " This cocktail first appears in The Savoy Cocktail Book (1930).  ",
+            "preparationsAndVariations": "The amount of Dubonnet, Curaçao and Fernet Branca seems to fluctuate from recipe to recipe. \nIt is said that Napoleon was not known to drink much, but when he did it was typically cognac, and sometimes included the sweetening addition of Curaçao.  This fact informs a second recipe for the Napoleon that includes a sugar cube dipped in curaçao and 1/2 ounce cognac to be placed in a champagne filled flute.\nNapoleon's reputation for sweetening his cognac with curaçao spawned the creation of Mandarine Napoleon by DeKupyr. "
+          },
+          {
+            "name": "Negroni",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "1 oz. Gin",
+              "1 oz. Sweet Vermouth",
+              "1 oz. Campari"
+            ],
+            "preparation": "Stir ingredients together with ice.",
+            "presentation": "Old Fashioned Glass, Orange Peel",
+            "history": "The Negroni's origins are not considered fact, but many believe that is was first served in Florence at the Caffè Casoni in 1919. Fosco Scarselli, the bartender, was asked by Count Camillo Negroni to strengthen his favorite cocktail, the Americano, by adding gin instead of seltzer.\nThe instant success of the drink spawned the creation of the Distillerie Negroni in Treviso where they produced and bottled a premixed version called Antico Negroni.  The first sale of Antico Negroni was also in 1919. \nIn 1947, the Coshocton Tribune correspondent, Orson Wells, reported on a \"new drink\" that he ad discovered in Rome, and remarked \"The bitters are excellent for your liver, the gin is bad for you.\"",
+            "preparationsAndVariations": "This cocktail can be served on the rocks or up.\nThere are two preparations for serving the Negroni on the rocks.  One approach builds the cocktail the glass it is to be served in, and stirred gently when the ice is added. The other combines the three ingredients in a mixing glass, and is stirred before being strained onto fresh ice in an old fashioned glass. There are many nuances to each bar and restaurant that can influence a preparation method.. \nMany bars and bartenders around the world tinker with the amounts of sweet vermouth and Campari to create their own expression of the classic. \nThe Negroni Sbagliato is a common variation that exchanges the gin for 3-4 oz of prosecco and is served in a flute. "
+          },
+          {
+            "name": "Old Pal",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "1 oz. Rye Whiskey",
+              "1 oz. Dry Vermouth",
+              "1 oz. Campari"
+            ],
+            "preparation": "Stir the ingredients over ice. Strain.",
+            "presentation": "Cocktail Glass, Lemon Twist",
+            "bartenderComments": "Like the Boulevardier, this made its debut in a Harry McElhone tome, the ABC of Mixing Cocktails. This iteration is a bit firmer than its counterpart—it utilizes rye instead of bourbon and supplants sweet vermouth for dry. Both are delicious and should be tried together. Or on their own. Whatever; just try 'em!"
+          },
+          {
+            "name": "Parisienne",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "3/4 oz. Gin",
+              "3/4 oz. Noilly Prat",
+              "2 dashes Crème de Cassis"
+            ],
+            "preparation": "Stir ingredients with ice and strain.",
+            "presentation": "Cocktail Coupe, Lemon Peel (Can be Flamed)",
+            "history": "The first printing of this recipe appears in The Savoy Cocktail Book (1930).",
+            "preparationsAndVariations": "Other Recipes prescribe equal parts of gin, vermouth and crème de cassis"
+          },
+          {
+            "name": "Pink Lady",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "1.5 oz. London Dry Gin",
+              "1/4 oz. Grenadine",
+              "1 Egg White"
+            ],
+            "preparation": "Dry shake all ingredients first, then shake with ice and strain.",
+            "presentation": "Cocktail Glass, Cherry",
+            "history": "The precise origin of the Pink Lady is unknown, but many point to its creation happening before prohibition.  Elise de Wolfe, a prominent architect and designer of the time is often credited with naming the cocktail after a 1911 broadway musical of the same name featuring Hazel Dawn, a.k.a. \"The Pink Lady\". ",
+            "preparationsAndVariations": "The first printed version of the recipe can be found in The Savoy Cocktail Book (1930), and is the recipe offered above.  Many variations have been created since its inception.  The addition of lemon juice is popular, but adding acid changes the cocktail dramatically.  Apple brandy is another popular addition, and many believe that it was the original base for the cocktail instead of gin.\nThe cocktail saw increased popularity in the 1950's when sweetened cream was added in place of the egg white to create a dessert cocktail."
+          },
+          {
+            "name": "Pisco Sour",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "2 oz. Pisco",
+              "1 oz. Lime or Lemon Juice (or combination of both)",
+              "3/4 oz. Simple Syrup",
+              "1 Egg White",
+              "1 dash Angostura Bitters"
+            ],
+            "preparation": "Shake all ingredients except bitters with ice and strain into the glass. Garnish the glass with a dash of bitters.",
+            "presentation": "Cocktail Glass",
+            "bartenderComments": "If you want to get really geeky, try seeking out Amargo Chuncho, a brand of Peruvian bitters, for your garnish. Otherwise, Angostura works just fine."
+          },
+          {
+            "name": "Red Lion",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "1 oz. Gin",
+              "1 oz. Grand Marnier",
+              "1/2 oz. Lemon Juice",
+              "1/2 oz. Orange Juice"
+            ],
+            "preparation": "Shake all ingredients with ice and strain.",
+            "presentation": "Cocktail Coupe with a sugar crusted rim",
+            "history": "  The Red Lion first appears in The Cafe Royal Cocktail Book(1937).  The entry sites that the cocktail was created by Arthur Tarling for 1933 cocktail competition in London where it took 1st place.    The cocktail originally prescribed the use of Booth's gin, and has been promoted by Booth's and Grand Marnier throughout the years. The name of the Booth's original distillery(1740) in Clerkenwell, England was Red Lion, and the image of a red lion has always appeared on the label.",
+            "preparationsAndVariations": "Grenadine has often been added to various recipes, and the sugar frosted rim is optional. In an effort to make a drier cocktail, the amount of gin is added.  It is important to note that London Dry gin is to be used, and not a 'sweeter' style of gin like Plymouth Gin. "
+          },
+          {
+            "name": "Satan's Whiskers",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "3/4 oz. Gin",
+              "3/4 oz. Dry Vermouth",
+              "3/4 oz. Sweet Vermouth",
+              "3/4 oz. Orange Juice",
+              "1/2 oz Grand Marnier",
+              "1 dash of  Orange Bitters"
+            ],
+            "preparation": "Shake all ingredients with ice and strain.",
+            "presentation": "Cocktail Coupe",
+            "history": "The first documentation of this recipe appears in The Savoy Cocktail Book(1930) with two entries, one 'straight' and one 'curled.'\nThe general accepted origin for the cocktail is at the Embassy Club in Hollywood during prohibition.  It was a speakeasy that Adolf Brandstatter opened adjacent to the restaurant Montmartre to allow for a more private venue to host celebrities and the elite.",
+            "preparationsAndVariations": "Straight Whiskers: Grand Marnier; Curled Whiskers: Curacao \nOther recipes call for equal parts of all 5 ingredients, and for more orange bitters."
+          },
+          {
+            "name": "Sidecar",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "1.5 ounces Cognac",
+              ".75 ounce Lemon juice",
+              ".75 ounce Cointreau"
+            ],
+            "preparation": "Shake with ice and strain.",
+            "presentation": "Cocktail coupe with a sugar rim ",
+            "history": "With French origins, the drink was codified in the 1920s in London before becoming a prohibition staple in the United States. ",
+            "preparationsAndVariations": " There are two common specs, based on ratios. 2-1 of Cognac or equal parts of all three ingredients. "
+          },
+          {
+            "name": "Scofflaw",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "1oz. Canadian or Rye Whiskey",
+              "1oz. Dry Vermouth",
+              "1/2 oz. Lemon Juice",
+              "1/2 barspoon Grenadine",
+              "1 dash Orange Bitters"
+            ],
+            "preparation": "Shake all ingredients with ice and strain.",
+            "presentation": "Cocktail Glass, Orange Peel",
+            "history": "Scofflaw-a person who drank illegally made or acquired spirits during prohibition. This cockatil first appears at Harry's bar in Paris in 1924",
+            "preparationsAndVariations": "This recipe is taken from The Savoy Cocktail Book 1930.  Other recipes published later show varying proportions, of whiskey and vermouth. American whiskey was not available in Paris during Prohibition, so Canadian whiskey was the ingredient of choice. "
+          },
+          {
+            "name": "Southside",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "2 oz. Dry Gin",
+              "3/4 oz. Lemon Juice",
+              "3/4 oz. Simple Syrup",
+              "10 Mint Leaves"
+            ],
+            "preparation": "Muddle the mint in a shaker with the liquid ingredients. Add ice and shake, strain.",
+            "presentation": "Cocktail Glass, Mint Sprig",
+            "history": "The Southside has two possible origins.  Some believe that it first appeared at the Southside Sportsmen's Club in Long Island, New York, a social club that lasted from the 1870's through the 1960's. It was a popular prohibition drinking spot.  Others believe that the cocktail was created on the South Side of Chicago.  Both stories point to one person and spirit of origin, Al Capone.  His brand of gin during prohibition was rougher, and most likely more adulterated than the gin produced on the North Side of Chicago, and thus his needed more sweetening to be palatable  His presence in both Chicago and New York during prohibition supports the idea that his low quality gin spawned the production of this cocktail, and exactly where it happened is of less concern.",
+            "preparationsAndVariations": "This cocktail was made by almost every speak easy during prohibition.  The 21 Club as famous for packing the cocktail shaker full of mint leaves, much more than 10. The Southside Fizz was a an early variation that lengthened the cocktail with soda and ice. Modern day versions often switch lemon out for lime juice, and this has become a starting point for many original cocktails in the modern era of the bar."
+          },
+          {
+            "name": "White Lady",
+            "era": Era.PROHIBITION,
+            "ingredients": [
+              "1 oz. Gin",
+              "1 oz. Cointreau",
+              "1 oz. Lemon Juice"
+            ],
+            "preparation": "Shake all ingredients and strain.",
+            "presentation": "Cocktail Glass, Cherry",
+            "bartenderComments": "The white lady as we know it today has undergone quite an evolution before the recipe was standardized. (Anyone for brandy, triple sec and crème de menthe?) Some recipes add egg white, but I like the firm texture created by its omission."
+          },
+
+          // Disco Era
+          {
+            "name": "Cosmopolitan",
+            "era": Era.DISCO,
+            "ingredients": [
+              "1 1/2 ounce vodka",
+              "1/2 ounce Triple Sec",
+              "1/2 ounce cranberry juice",
+              "1/2 ounce lime juice"
+            ],
+            "preparation": "Shake all ingredients with ice and strain into a cocktail glass.",
+            "presentation": "Cocktail glass, garnished with lime twist",
+            "bartenderComments": "Cheryl Cook's name is often bandied about when discussing the Cosmo's origin. Working in South Beach in the mid-1980s, Cook based her original drink on the then-new Absolut Citron vodka, triple sec, Rose's lime cordial, and \"just enough cranberry to make it oh so pretty in pink.\""
+          },
+          {
+            "name": "French Martini",
+            "era": Era.DISCO,
+            "ingredients": [
+              "2 ounces vodka",
+              "1/2 ounce Chambord",
+              "2 1/2 ounces pineapple juice"
+            ],
+            "preparation": "Shake all ingredients with ice and strain into a cocktail glass.",
+            "presentation": "Cocktail glass, garnished with lemon twist",
+            "history": "Keith McNally's first restaurant, the Odeon, opened in 1980 and is credited for creating the drink. It was on the opening cocktail menu for his popular SoHo restaurant Balthazar. ",
+            "preparationsAndVariations": "Not much has changed for this '80s icon. A guest ordering a French Martini will often expect to see recognizable French ingredients like Chambord and often Grey Goose. Though not traditional, Chambord is sometimes swapped out for a more savory créme de cassis.\nChambord is named for the Château de Chambord in Amboise of the Loire Valley, where a similar liqueur was known to be a favorite tipple of the royalty who resided there. The first documented reference to Chambord is in 1658, and the modern-day version was introduced by Brown Forman in 1982; they still own it today."
+          },
+          {
+            "name": "God Mother",
+            "era": Era.DISCO,
+            "ingredients": [
+              "1 ounce vodka",
+              "1 ounce amaretto liqueur"
+            ],
+            "preparation": "Pour over ice and stir briefly to mix the two ingredients.",
+            "presentation": "Double rocks glass",
+            "history": "The origin of this cocktail is unknown, but it is clearly a variation on the God Father. Disarono claims the creative rights of that cocktail.",
+            "preparationsAndVariations": "This drink is one of many variations on the God Father. It is known as a \"duo,\" or a blend of a dry spirit and a liqueur."
+          },
+          {
+            "name": "God Father",
+            "era": Era.DISCO,
+            "ingredients": [
+              "1 1/2 ounce Scotch whisky",
+              "3/4 ounce amaretto"
+            ],
+            "preparation": "Pour ingredients over ice and stir gently to mix.",
+            "presentation": "Old Fashioned glass",
+            "history": "The origin of this Duo is unknown, but Disaronno claims that it was the favorite cocktail of actor Marlon Brando. Either way, it first made an appearance as the Tiki era ended and the Disco age of Grasshoppers and Mudslides began.",
+            "preparationsAndVariations": "The drink can also be made using equal parts if looking for a sweeter version. Substitute vodka for the Scotch to make the Godmother, or use Cognac to make a French Connection."
+          },
+          {
+            "name": "Grasshopper",
+            "era": Era.DISCO,
+            "ingredients": [
+              "1ounce green crème de menthe",
+              "1 ounce white crème de cacao",
+              "1 ounce cream"
+            ],
+            "preparation": "Shake all ingredients over ice and strain.",
+            "presentation": "Cocktail glass",
+            "preparationsAndVariations": "The Grasshopper is a straightforward and tasty cocktail, and using quality crème liqueurs is essential."
+          },
+          {
+            "name": "Kamikaze",
+            "era": Era.DISCO,
+            "ingredients": [
+              "1 oz. Vodka",
+              "1 oz. Triple Sec",
+              "1 oz. Lime Juice"
+            ],
+            "preparation": "Shake all ingredients with ice and strain.",
+            "presentation": "Cocktail Glass, Lime Slice",
+            "bartenderComments": "For those who like Margaritas without all that tequila deliciousness. "
+          },
+          {
+            "name": "Long Island Iced Tea",
+            "era": Era.DISCO,
+            "ingredients": [
+              "1/2 oz. Vodka",
+              "1/2 oz. Tequila",
+              "1/2 oz. White Rum",
+              "1/2 oz. Triple Sec",
+              "1/2 oz. Gin",
+              "3/4 oz. Lemon Juice",
+              "1 oz. Simple Syrup",
+              "1 oz. Coca-Cola"
+            ],
+            "preparation": "Stir all ingredients with ice.",
+            "presentation": "Highball Glass, Lemon Twist",
+            "bartenderComments": "Popular among bros."
+          },
+          {
+            "name": "Madras",
+            "era": Era.DISCO,
+            "ingredients": [
+              "2 oz. Vodka",
+              "2 oz. Cranberry Juice",
+              "2 oz. Orange Juice"
+            ],
+            "preparation": "Shake all ingredients with ice and strain into glass filled with ice.",
+            "presentation": "Highball Glass, Orange Slice",
+            "bartenderComments": "A sweeter variation of the Sea Breeze."
+          },
+
+          // Modern Age
+          {
+            "name": "Cable Car",
+            "era": Era.MODERN,
+            "ingredients": [
+              "1 1/2 oz. Captain Morgan Spiced Rum",
+              "3/4 oz. Marie Brizard Orange Curaçao",
+              "1 oz. Lemon Juice",
+              "1/2 oz. Simple Syrup"
+            ],
+            "preparation": "Shake all ingredients with ice and strain.",
+            "presentation": "Cinnamon rimmed cocktail glass, Orange Twist",
+            "history": " This cocktail was created by Tony Abou-Ganim as a modern take on the Sidecar.  It commemorates the Straight Room in the Drake Hotel in San Francisco.",
+            "preparationsAndVariations": "The recipe has always called or Captain Morgan, however there are many more quality spiced rums on the market now compared to over 20 years ago. The sweetness of this drink can be tinkered with by adjusting the amount of Orange Curaçao and Simple Syrup. "
+          },
+          {
+            "name": "Gin Gin Mule",
+            "era": Era.MODERN,
+            "ingredients": [
+              "1 1/2 ounce London Dry Gin",
+              "1/2 ounce simple syrup",
+              "1/2 ounce lime juice",
+              "Ginger beer",
+              "10 mint leaves"
+            ],
+            "preparation": "Lightly muddle the mint in the base of a shaker. Add all of the liquid ingredients except the ginger beer. Add ice, shake, and strain into an ice-filled glass. Top with ginger beer.",
+            "presentation": "Highball glass, garnished with mint sprig, lime wedge, or slice of candied ginger",
+            "history": "Created by Audrey Saunders at her famed Pegu Club in Manhattan.",
+            "preparationsAndVariations": "The most significant variable in this cocktail is the ginger. Some like to add a ginger juice or puree to the mix in addition to topping with ginger beer. Ginger beer can be purchased or homemade."
+          },
+          {
+            "name": "Naked and Famous",
+            "era": Era.MODERN,
+            "ingredients": [
+              "3/4 oz. Mezcal",
+              "3/4 oz. Yellow Chartreuse",
+              "3/4 oz. Aperol",
+              "3/4 oz. Lime juice"
+            ],
+            "preparation": "Shake all ingredients with ice and strain.",
+            "presentation": "Cocktail Coupe, Lemon Twist (optional)",
+            "history": "A mezcal-fueled, modern day variation of the Last Word created by bartender Joaquín Simó while at Death & Co. in New York.",
+            "preparationsAndVariations": " The Mezcal one chooses can make a big difference. Simó recommends Del Maguey's Chichicapa, though a quality non-village designated Mezcal like Sombra, or Del Maquey's Vida will certainly deliver.  "
+          },
+          {
+            "name": "Paper Plane",
+            "era": Era.MODERN,
+            "ingredients": [
+              "3/4 oz. Bourbon ",
+              "3/4 oz. Aperol",
+              "3/4 oz. Amaro Nonino",
+              "3/4 oz. Lemon Juice"
+            ],
+            "preparation": "Combine in a shaker with ice. Chill and double strain.",
+            "presentation": "Cocktail Glass, Lemon Twist",
+            "history": "This cocktail was created by Sam Ross while at Milk and Honey, prior to purchasing it and opening Attaboy. ",
+            "preparationsAndVariations": "A change in the amaro can alter the flavor profile of this drink drastically.  Elijah Craig and Eagle Rare are two Bourbons that the author of the cocktail recommends."
+          },
+          {
+            "name": "Penicillin",
+            "era": Era.MODERN,
+            "ingredients": [
+              "2 ounces Blended Scotch Whisky",
+              ".75 ounce lemon juice",
+              ".75 ounce honey syrup",
+              "2-3 pieces of sliced ginger ",
+              "Islay Scotch float "
+            ],
+            "preparation": "Muddle the ginger with the honey syrup. Then shake the ingredients with ice. double strain into a rocks glass and float the islay scotch before serving. ",
+            "presentation": "Served over ice in a rocks glass with a candied ginger garnish",
+            "history": "Invented in 2005 by Sam Ross at New York City's Milk & Honey",
+            "preparationsAndVariations": "The only major variation is using ginger-honey syrup to forgo the step of muddling. "
+          },
+          {
+            "name": "Old Cuban",
+            "era": Era.MODERN,
+            "ingredients": [
+              "1 1/2 oz. Aged Rum",
+              "3/4 Fresh Lime Juice",
+              "3/4 Simple Syrup",
+              "6-8 Mint Leaves",
+              "2 oz Sparkling Wine"
+            ],
+            "preparation": "Shake all but the sparkling wine with ice and strain. Top with sparkling wine. ",
+            "presentation": "Cocktail Coupe, Mint sprigs and/or lime wheel.",
+            "history": "Considered to be a modern classic by many, this offering was first served by Audrey Saunders while tending bar at Beacon restaurant on the Upper West Side of Manhattan before she opened the Pegu Club.  Originally a riff on a mojito that she called the El Cubano, this was a matter of adjusting the ratio of fizz to cocktail, and using sparkling wine instead of soda water. When she added aged rum, the Old Cuban was born.  It is offered as a memory of the times during prohibition when those who could, flew to Cuba to drink above ground. ",
+            "preparationsAndVariations": " The sparkling wine that is added can drastically change the cocktail.  Something bright and fresh versus a toasty wine with a ton of autolysis is not necessarily better, only different. The combinations are almost endless.  Refreshing versions would include things like a straight forward 5 yr Havana Club and Cava, while rich and powerful versions could include El Dorado 21yr with a float of Cristal!  "
+          }
+        ];
+
+        const GameDifficulty = {
+          EASY: 'Easy',
+          INTERMEDIATE: 'Intermediate',
+          ADVANCED: 'Advanced',
+        };
+
+        const TOTAL_ROUNDS = 20;
+
+        // --- GAME LOGIC ---
+        const shuffleArray = (array) => {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        };
+        const getRandomItems = (array, count) => shuffleArray(array).slice(0, count);
+        const normalizeString = (str) => str.toLowerCase().replace(/[.,/#!$%^&*;:{}=\-_`~()]/g,"").trim();
+        const normalizeNumberString = (str) => {
+            if (!str) return null;
+            const s = str.trim()
+                .replace('½', '1/2')
+                .replace('¼', '1/4')
+                .replace('¾', '3/4');
+
+            if (s.includes('/')) {
+                const parts = s.split(/[\s/]+/);
+                if (parts.length === 3) return parseInt(parts[0], 10) + parseInt(parts[1], 10) / parseInt(parts[2], 10);
+                if (parts.length === 2) return parseInt(parts[0], 10) / parseInt(parts[1], 10);
+            }
+            
+            const num = parseFloat(s);
+            return isNaN(num) ? null : num;
+        };
+
+        const BASE_SPIRITS = ['Whiskey', 'Gin', 'Rum', 'Vodka', 'Tequila', 'Brandy', 'Scotch', 'Cognac', 'Mezcal', 'Pisco', 'Absinthe', 'Sherry', 'Bourbon', 'Rye'];
+
+        const getBaseSpirit = (cocktail) => {
+            const ingredientsLower = cocktail.ingredients.map(ing => ing.toLowerCase());
+            for (const ingredient of ingredientsLower) {
+                for (const spirit of BASE_SPIRITS) {
+                    if (ingredient.includes(spirit.toLowerCase())) {
+                        if (spirit === 'Rye' || spirit === 'Bourbon') return 'Whiskey';
+                        return spirit;
+                    }
+                }
+            }
+            return null;
+        }
+
+        const parseIngredient = (ingredientStr) => {
+            const trimmed = ingredientStr.trim();
+            const regex = /^([\d./½¼¾–\s-]+|one|half of a)\s*((?:oz|ounce|ounces|dash|dashes|tsp|teaspoon|drops|splash|barspoon|part|parts|cup|egg white|mint leaves|leaves|slices|piece|pieces|sugar cube)[.s]*)?\s*(.*)$/i;
+            const match = trimmed.match(regex);
+            
+            if (match) {
+                const number = match[1] ? match[1].trim() : '';
+                const unit = match[2] ? match[2].trim() : '';
+                let name = match[3] ? match[3].trim() : '';
+                if (name.toLowerCase().startsWith('each')) {
+                    return { number, unit: `${unit} each`, name: name.substring(4).trim() };
+                }
+                return { number, unit, name };
+            }
+            
+            const noNumberRegex = /^((?:dash|splash)\s*(?:of)?)\s*(.*)/i;
+            const noNumberMatch = trimmed.match(noNumberRegex);
+            if (noNumberMatch) {
+                return { number: '', unit: noNumberMatch[1].trim(), name: noNumberMatch[2].trim() };
+            }
+
+            return { number: '', unit: '', name: trimmed };
+        };
+
+        const generateEasyQuestion = (cocktail) => {
+            const correctAnswer = getBaseSpirit(cocktail);
+            if (!correctAnswer) return null;
+            const otherSpirits = BASE_SPIRITS.filter(s => s.toLowerCase() !== correctAnswer.toLowerCase());
+            const options = shuffleArray([correctAnswer, ...getRandomItems(otherSpirits, 3)]);
+            return { type: 'base-spirit', cocktail, options, correctAnswer };
+        };
+
+        const generateIntermediateQuestion = (cocktail) => {
+            const parsedIngredients = cocktail.ingredients.map(ing => parseIngredient(ing));
+            const allParts = [];
+            parsedIngredients.forEach((pIng, i) => {
+                if (pIng.number) allParts.push({ ingIndex: i, part: 'number', value: pIng.number });
+                if (pIng.name) allParts.push({ ingIndex: i, part: 'name', value: pIng.name });
+            });
+            const blanksToMake = Math.min(2, allParts.length);
+            const partsToBlank = getRandomItems(allParts, blanksToMake);
+            const ingredientsWithBlanks = cocktail.ingredients.map((original, i) => {
+                const parsed = parsedIngredients[i];
+                const parts = [];
+                const isNumberBlank = partsToBlank.some(b => b.ingIndex === i && b.part === 'number');
+                const isNameBlank = partsToBlank.some(b => b.ingIndex === i && b.part === 'name');
+                if(parsed.number) parts.push({ value: parsed.number, isBlank: isNumberBlank, part: 'number' });
+                if(parsed.unit) parts.push({ value: parsed.unit, isBlank: false, part: 'unit' });
+                if(parsed.name) parts.push({ value: parsed.name, isBlank: isNameBlank, part: 'name' });
+                if (parts.length === 0 && original) parts.push({ value: original, isBlank: false, part: 'name' });
+                return { parts, original };
+            });
+            return { type: 'intermediate', cocktail, ingredients: ingredientsWithBlanks };
+        };
+
+        const generateAdvancedQuestion = (cocktail) => ({ type: 'advanced', cocktail });
+
+        const generateQuestions = (difficulty, count) => {
+            const selectedCocktails = getRandomItems(cocktails, count);
+            let questions = [];
+            selectedCocktails.forEach(cocktail => {
+                let question = null;
+                if (difficulty === GameDifficulty.EASY) question = generateEasyQuestion(cocktail);
+                else if (difficulty === GameDifficulty.INTERMEDIATE) question = generateIntermediateQuestion(cocktail);
+                else if (difficulty === GameDifficulty.ADVANCED) question = generateAdvancedQuestion(cocktail);
+                if (question) questions.push(question);
+            });
+            if(questions.length < count && difficulty === GameDifficulty.EASY) {
+                const moreCocktails = shuffleArray(cocktails.filter(c => !selectedCocktails.includes(c)));
+                for(const c of moreCocktails) {
+                    const q = generateEasyQuestion(c);
+                    if (q) questions.push(q);
+                    if (questions.length >= count) break;
+                }
+            }
+            return questions.slice(0, count);
+        };
+
+        const areNumbersEquivalent = (numStr1, numStr2) => {
+            const n1 = normalizeNumberString(numStr1);
+            const n2 = normalizeNumberString(numStr2);
+            if (n1 !== null && n2 !== null) return Math.abs(n1 - n2) < 0.01;
+            return normalizeString(numStr1) === normalizeString(numStr2);
+        };
+
+        const checkBaseSpiritAnswer = (question, answer) => normalizeString(answer) === normalizeString(question.correctAnswer);
+
+        const checkIntermediateAnswer = (question, answers) => {
+            const correctBlanks = question.ingredients.flatMap(ing => ing.parts).filter(part => part.isBlank);
+            if (correctBlanks.length !== answers.length) return false;
+            return correctBlanks.every((blank, i) => {
+                const userAnswer = answers[i];
+                if (blank.part === 'number') return areNumbersEquivalent(userAnswer, blank.value);
+                return normalizeString(userAnswer) === normalizeString(blank.value);
+            });
+        };
+
+        const checkAdvancedAnswer = (question, answers) => {
+            if (question.cocktail.ingredients.length !== answers.length) return false;
+            const correctParsed = question.cocktail.ingredients.map(ing => parseIngredient(ing));
+            return answers.every((userAns, i) => {
+                const correctAns = correctParsed[i];
+                if (normalizeString(userAns.name) !== normalizeString(correctAns.name)) return false;
+                const userParsed = parseIngredient(`${userAns.quantity} ${userAns.name}`);
+                if (normalizeString(userParsed.unit) !== normalizeString(correctAns.unit)) {
+                    if (normalizeString(userParsed.unit).slice(0, -1) !== normalizeString(correctAns.unit) &&
+                        normalizeString(correctAns.unit).slice(0, -1) !== normalizeString(userParsed.unit)) {
+                        return false;
+                    }
+                }
+                if (!correctAns.number && !userParsed.number) return true;
+                return areNumbersEquivalent(userParsed.number, correctAns.number);
+            });
+        };
+
+        const getFeedback = (scorePercentage) => {
+            if (scorePercentage === 1) return "Perfection! You're a true master mixologist. Your knowledge is unparalleled!";
+            if (scorePercentage >= 0.8) return "Excellent work! You have an impressive command of cocktail craft. Cheers to you!";
+            if (scorePercentage >= 0.6) return "Great job! You clearly know your way around a bar. Keep refining those skills!";
+            if (scorePercentage >= 0.4) return "Solid effort! You're building a great foundation of cocktail knowledge.";
+            return "A good start! Every expert was once a beginner. Keep practicing and exploring the world of cocktails!";
+        };
+
+        // --- ICONS ---
+        const ICONS = {
+            search: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`,
+            close: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`,
+            reset: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M21 21v-5h-5"/></svg>`,
+            check: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
+            leftArrow: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>`,
+            rightArrow: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>`,
+            glassware: {
+                coupe: `<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 28 C 12 42, 52 42, 52 28" /><path d="M32 35v21" /><path d="M22 56h20" /></svg>`,
+                martini: `<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 12l20 20 20-20" /><path d="M12 12h40" /><path d="M32 32v24" /><path d="M22 56h20" /></svg>`,
+                oldFashioned: `<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 12h36v40a2 2 0 0 1 -2 2H16a2 2 0 0 1 -2-2z" /><path d="M14 48h36" /></svg>`,
+                highball: `<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8h28v48H18z" /></svg>`,
+                flute: `<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M26 36c0-13.255 2.686-24 6-24s6 10.745 6 24-2.686 24-6 24-6-10.745-6-24z" /><path d="M32 60v-4" /><path d="M24 60h16" /></svg>`,
+                nickAndNora: `<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 26a16 12 0 0 1 32 0v2H16z" /><path d="M32 40v16" /><path d="M24 56h16" /></svg>`,
+                mug: `<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 10h32v44H12z" /><path d="M10 14h36v-4H10z" /><path d="M10 54h36v-4H10z" /><path d="M44 26 C 52 30, 52 42, 44 46" /></svg>`,
+                absinthe: `<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8h28l-6 24h-16l-6-24z" /><path d="M32 32v10" /><path d="M28 42h8v6h-8z" /><path d="M32 48v8" /><path d="M24 56h16" /></svg>`,
+                hurricane: `<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M24 8h16l-2 10c-2 8 2 12 2 16v10h-12V34c0-4 4-8 2-16z" /><path d="M32 44v10" /><path d="M24 54h16" /></svg>`,
+                default: `<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="32" cy="32" r="24" /><path d="M40 40L24 24" /></svg>`,
+            }
+        };
+
+        const getGlasswareIconHTML = (cocktail) => {
+            const nameOverrides = { '4th Regiment': 'coupe', 'Americano': 'oldFashioned', 'Singapore Sling': 'hurricane', 'Tom and Jerry': 'mug' };
+            if (nameOverrides[cocktail.name]) return ICONS.glassware[nameOverrides[cocktail.name]];
+
+            const glasswareMap = { 'coupe': 'coupe', 'martini': 'martini', 'cocktail glass': 'martini', 'frappé': 'coupe', 'old fashioned': 'oldFashioned', 'old-fashioned': 'oldFashioned', 'rocks': 'oldFashioned', 'lowball': 'oldFashioned', 'highball': 'highball', 'collins': 'highball', 'flute': 'flute', 'nick and nora': 'nickAndNora', 'julep': 'mug', 'mug': 'mug', 'absinthe': 'absinthe', 'hurricane': 'hurricane' };
+            
+            const pLower = cocktail.presentation.toLowerCase();
+            for (const key in glasswareMap) if (pLower.includes(key)) return ICONS.glassware[glasswareMap[key]];
+
+            const prepLower = cocktail.preparation.toLowerCase();
+            for (const key in glasswareMap) if (prepLower.includes(key)) return ICONS.glassware[glasswareMap[key]];
+
+            return ICONS.glassware.default;
+        };
+
+        // --- STATE MANAGEMENT ---
+        let state = {
+            screen: 'main_menu',
+            searchTerm: '',
+            activeEra: Era.ALL,
+            // Game State
+            gameDifficulty: null,
+            gameQuestions: [],
+            currentRound: 0,
+            score: 0,
+            isGameOver: false,
+            // Flashcard State
+            flashcardDeckType: null,
+            flashcardDeck: [],
+            flashcardCurrentIndex: 0,
+            isFlipped: false,
+            learnedCards: new Set(),
+            showOnlyUnlearned: false,
+            touchStartX: null,
+        };
+
+        const setState = (newState) => {
+            state = { ...state, ...newState };
+            render();
+        };
+
+        const navigateTo = (screen, payload = {}) => {
+            state = { ...state, screen, ...payload };
+            render();
+        };
+
+        // --- HTML TEMPLATES / "COMPONENTS" ---
+        const createModal = (content, onCloseAction = 'closeModal') => {
+            const modalContainer = document.createElement('div');
+            modalContainer.id = 'modal-container';
+            modalContainer.className = 'fixed inset-0 bg-black bg-opacity-70 z-50 flex justify-center items-center p-4 backdrop-blur-sm';
+            modalContainer.dataset.action = onCloseAction;
+            modalContainer.innerHTML = content;
+            document.body.appendChild(modalContainer);
+            document.body.style.overflow = 'hidden';
+        };
+
+        const closeModal = () => {
+            const modal = document.getElementById('modal-container');
+            if (modal) {
+                modal.remove();
+                document.body.style.overflow = 'auto';
+            }
+        };
+        
+        const HowToPlayModalHTML = () => {
+          const renderSection = (title, content) => `
+            <div class="mb-6">
+              <h3 class="text-xl font-bold text-amber-300 mb-2 border-b border-gray-600 pb-1">${title}</h3>
+              <div class="text-gray-300 space-y-2 leading-relaxed">${content}</div>
+            </div>`;
+
+          return `
+            <div class="bg-gray-800 rounded-lg shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto border border-gray-700 relative" data-action="stop-propagation">
+              <button data-action="closeModal" class="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors p-1 rounded-full bg-gray-700 hover:bg-gray-600" aria-label="Close modal">
+                <span class="h-6 w-6 inline-block">${ICONS.close}</span>
+              </button>
+              <div class="p-8">
+                <header class="mb-6 text-center">
+                  <h2 class="text-4xl font-extrabold text-white mb-1">How to Play</h2>
+                  <p class="text-md text-amber-400">A guide to the app's features</p>
+                </header>
+                ${renderSection('Cocktail Catalog', '<p>Browse the full collection of cocktails. Use the search bar to find a specific cocktail or ingredient, and filter by historical era to narrow your results. Click on any cocktail to see its full details, including recipe, history, and variations.</p>')}
+                ${renderSection('Test Your Skills (Game Mode)', `
+                  <h4 class="font-semibold text-gray-100">Easy</h4>
+                  <p>Identify the primary base spirit of a given cocktail from four options. A quick test of your fundamental knowledge.</p>
+                  <h4 class="font-semibold text-gray-100 mt-2">Intermediate</h4>
+                  <p>Fill in the blanks for a cocktail recipe. You'll be given the ingredient list with key amounts or names missing. Test your memory for details.</p>
+                  <h4 class="font-semibold text-gray-100 mt-2">Advanced</h4>
+                  <p>Recall the entire recipe from scratch! You'll be given a cocktail name and must provide all ingredients and their exact quantities. The ultimate test for a master mixologist.</p>
+                `)}
+                ${renderSection('Flashcard Mode', `
+                  <p>A dedicated study tool to help you memorize cocktails. Click a card to flip it over.</p>
+                  <ul class="list-disc list-inside pl-4">
+                    <li><strong>Recipe Deck:</strong> Focuses on the practical side: ingredients, preparation steps, and presentation.</li>
+                    <li><strong>History Deck:</strong> Covers the stories behind the drinks: history, common variations, and bartender commentary.</li>
+                  </ul>
+                  <p>Use the 'Mark as Learned' feature to track your progress and focus on cards you haven't mastered. You can reset your progress at any time.</p>
+                `)}
+              </div>
+            </div>`;
+        };
+        
+        const CocktailModalHTML = (cocktail) => {
+             const renderSection = (title, content) => {
+                if (!content) return '';
+                return `
+                    <div class="mb-6">
+                        <h3 class="text-xl font-bold text-amber-300 mb-2 border-b border-gray-600 pb-1">${title}</h3>
+                        <p class="text-gray-300 whitespace-pre-wrap leading-relaxed">${content}</p>
+                    </div>`;
+            };
+            return `
+             <div class="bg-gray-800 rounded-lg shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto border border-gray-700 relative" data-action="stop-propagation">
+                <button data-action="closeModal" class="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors p-1 rounded-full bg-gray-700 hover:bg-gray-600" aria-label="Close modal">
+                    <span class="h-6 w-6 inline-block">${ICONS.close}</span>
+                </button>
+                <div class="p-8">
+                    <header class="mb-6 text-center">
+                        <h2 class="text-4xl font-extrabold text-white mb-1">${cocktail.name}</h2>
+                        <p class="text-md text-amber-400">${cocktail.era}</p>
+                    </header>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div>
+                            <div class="mb-6">
+                                <h3 class="text-xl font-bold text-amber-300 mb-2 border-b border-gray-600 pb-1">Ingredients</h3>
+                                <ul class="list-disc list-inside text-gray-300 space-y-1">
+                                    ${cocktail.ingredients.map(ing => `<li>${ing}</li>`).join('')}
+                                </ul>
+                            </div>
+                            <div class="mb-6">
+                                <h3 class="text-xl font-bold text-amber-300 mb-2 border-b border-gray-600 pb-1">Preparation</h3>
+                                <p class="text-gray-300">${cocktail.preparation}</p>
+                            </div>
+                            <div class="mb-6">
+                                <h3 class="text-xl font-bold text-amber-300 mb-2 border-b border-gray-600 pb-1">Presentation</h3>
+                                <p class="text-gray-300">${cocktail.presentation}</p>
+                            </div>
+                        </div>
+                         <div>
+                            ${renderSection('History', cocktail.history)}
+                            ${renderSection('Preparations & Variations', cocktail.preparationsAndVariations)}
+                            ${renderSection('Bartender Comments', cocktail.bartenderComments)}
+                         </div>
+                    </div>
+                </div>
+            </div>`;
+        };
+
+        const CocktailCardHTML = (cocktail) => `
+            <button
+              data-action="select-cocktail"
+              data-cocktail-name="${cocktail.name}"
+              class="bg-gray-800 rounded-lg p-4 text-center group border border-gray-700 hover:border-amber-400 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-amber-500/10 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 focus:ring-offset-gray-900"
+              aria-label="View details for ${cocktail.name}"
+            >
+              <div class="flex justify-center items-center mb-3 h-12">
+                <span class="h-12 w-12 text-gray-600 group-hover:text-amber-400 transition-colors duration-300">${getGlasswareIconHTML(cocktail)}</span>
+              </div>
+              <h3 class="font-semibold text-lg text-gray-200 group-hover:text-white transition-colors duration-300 truncate pointer-events-none">
+                ${cocktail.name}
+              </h3>
+               <p class="text-xs text-gray-500 mt-1 pointer-events-none">${cocktail.era}</p>
+            </button>
+        `;
+
+        // --- SCREEN RENDERERS ---
+        const renderMainMenu = () => {
+            app.innerHTML = `
+                <div class="min-h-screen flex flex-col items-center justify-center p-4">
+                     <header class="text-center mb-12">
+                        <h1 class="text-5xl md:text-7xl font-bold tracking-wider text-white mb-4" style="font-family: 'Garamond', serif">
+                            Cocktail Catalog
+                        </h1>
+                      <p class="text-xl text-gray-400 max-w-2xl mx-auto">
+                        Explore, study, and test your mixology knowledge.
+                      </p>
+                    </header>
+                    <div class="space-y-4 w-full max-w-sm">
+                        <button data-action="navigate" data-screen="catalog" class="w-full text-center px-8 py-4 bg-gray-800 border border-gray-700 text-xl text-white font-bold rounded-lg transition-all duration-300 transform hover:scale-105 hover:bg-amber-400 hover:text-gray-900 hover:border-amber-400 shadow-lg">
+                            View Cocktail Catalog
+                        </button>
+                        <button data-action="navigate" data-screen="game_menu" class="w-full text-center px-8 py-4 bg-gray-800 border border-gray-700 text-xl text-white font-bold rounded-lg transition-all duration-300 transform hover:scale-105 hover:bg-amber-400 hover:text-gray-900 hover:border-amber-400 shadow-lg">
+                            Test Your Skills
+                        </button>
+                         <button data-action="navigate" data-screen="flashcard_menu" class="w-full text-center px-8 py-4 bg-gray-800 border border-gray-700 text-xl text-white font-bold rounded-lg transition-all duration-300 transform hover:scale-105 hover:bg-amber-400 hover:text-gray-900 hover:border-amber-400 shadow-lg">
+                            Flashcard Mode
+                        </button>
+                         <button data-action="show-how-to-play" class="w-full mt-4 text-center px-8 py-3 bg-gray-700/50 text-base text-gray-300 font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 hover:bg-gray-700">
+                            How to Play
+                        </button>
+                    </div>
+                </div>`;
+        };
+
+        const renderCompendium = () => {
+            const filteredCocktails = cocktails
+                .filter(cocktail => state.activeEra === Era.ALL || cocktail.era === state.activeEra)
+                .filter(cocktail => {
+                    const term = state.searchTerm.toLowerCase();
+                    return term === '' || cocktail.name.toLowerCase().includes(term) || cocktail.ingredients.some(ing => ing.toLowerCase().includes(term));
+                });
+            
+            app.innerHTML = `
+                <header class="sticky top-0 z-20 bg-gray-900/80 backdrop-blur-sm py-4 border-b border-gray-800">
+                    <div class="container mx-auto px-4 flex justify-between items-center">
+                        <h1 class="text-3xl font-bold tracking-wider text-white" style="font-family: 'Garamond', serif">
+                            Cocktail Catalog
+                        </h1>
+                        <button data-action="navigate" data-screen="main_menu" class="px-6 py-2 bg-gray-700 text-gray-300 font-semibold rounded-full transition-all duration-300 transform hover:scale-105 hover:bg-gray-600">
+                            Main Menu
+                        </button>
+                    </div>
+                </header>
+                <main class="container mx-auto px-4 py-8">
+                    <div class="max-w-4xl mx-auto space-y-6 mb-8">
+                        <div class="relative">
+                          <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                            <span class="h-5 w-5 text-gray-400">${ICONS.search}</span>
+                          </div>
+                          <input
+                            id="search-bar"
+                            type="text"
+                            placeholder="Search for a cocktail or ingredient..."
+                            value="${state.searchTerm}"
+                            class="w-full bg-gray-800 border border-gray-700 text-gray-100 rounded-full py-3 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-amber-400 transition-shadow duration-300 placeholder-gray-500"
+                          />
+                        </div>
+                        <div class="flex flex-wrap justify-center gap-2 md:gap-4">
+                            ${Object.values(Era).map(era => `
+                                <button data-action="filter-era" data-era="${era}" class="px-4 py-2 text-sm md:text-base font-semibold rounded-full transition-all duration-300 transform hover:scale-105 ${state.activeEra === era ? 'bg-amber-400 text-gray-900 shadow-lg shadow-amber-400/20' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}">
+                                    ${era}
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                        ${filteredCocktails.map(CocktailCardHTML).join('')}
+                    </div>
+                    ${filteredCocktails.length === 0 ? `
+                        <div class="text-center py-16 text-gray-500">
+                            <p class="text-2xl">No cocktails found.</p>
+                            <p>Try adjusting your search or filter.</p>
+                        </div>` : ''}
+                </main>`;
+            
+            document.getElementById('search-bar')?.addEventListener('input', (e) => {
+                state.searchTerm = e.target.value;
+                renderCompendium();
+                document.getElementById('search-bar')?.focus();
+            });
+        };
+        
+        const renderGameMenu = () => {
+             app.innerHTML = `
+                <div class="min-h-screen flex flex-col items-center justify-center p-4">
+                     <header class="text-center mb-12">
+                        <h1 class="text-5xl md:text-6xl font-bold tracking-wider text-white mb-4" style="font-family: 'Garamond', serif">
+                            Test Your Skills
+                        </h1>
+                        <p class="text-lg text-gray-400 max-w-2xl mx-auto">
+                            Select a difficulty to begin the quiz.
+                        </p>
+                    </header>
+                    <div class="space-y-6 w-full max-w-sm">
+                         <h2 class="text-center text-2xl text-amber-400 font-semibold tracking-wide">Select Difficulty</h2>
+                        ${Object.values(GameDifficulty).map(difficulty => `
+                             <button data-action="start-game" data-difficulty="${difficulty}" class="w-full text-center px-8 py-4 bg-gray-800 border border-gray-700 text-xl text-white font-bold rounded-lg transition-all duration-300 transform hover:scale-105 hover:bg-amber-400 hover:text-gray-900 hover:border-amber-400 shadow-lg">
+                                ${difficulty}
+                            </button>
+                        `).join('')}
+                    </div>
+                     <button data-action="navigate" data-screen="main_menu" class="mt-12 px-6 py-2 bg-gray-700 text-gray-300 font-semibold rounded-full transition-all duration-300 transform hover:scale-105 hover:bg-gray-600">
+                        Back to Main Menu
+                    </button>
+                </div>`;
+        };
+        
+        const renderGameScreen = () => {
+             if (state.isGameOver) {
+                const feedback = getFeedback(state.score / TOTAL_ROUNDS);
+                app.innerHTML = `
+                    <div class="fixed inset-0 bg-gray-900 z-50 flex justify-center items-center p-4">
+                        <div class="text-center">
+                            <h2 class="text-6xl font-extrabold text-amber-400 mb-4">Game Over</h2>
+                            <p class="text-3xl text-white mb-2">Your final score is</p>
+                            <p class="text-7xl font-bold text-white mb-6">${state.score} / ${TOTAL_ROUNDS}</p>
+                            <p class="text-xl text-gray-400 max-w-md mx-auto mb-10">${feedback}</p>
+                            <div class="flex flex-col sm:flex-row justify-center gap-4">
+                                 <button data-action="play-again" class="px-8 py-3 bg-amber-400 text-gray-900 font-bold rounded-full transition-all duration-300 transform hover:scale-105 shadow-lg shadow-amber-400/20">
+                                    Play Again
+                                </button>
+                                 <button data-action="navigate" data-screen="game_menu" class="px-8 py-3 bg-gray-700 text-gray-300 font-semibold rounded-full hover:bg-gray-600 transition-colors">
+                                    Return to Menu
+                                </button>
+                            </div>
+                        </div>
+                    </div>`;
+                return;
+            }
+
+            const question = state.gameQuestions[state.currentRound];
+            if (!question) {
+                app.innerHTML = `<div class="flex items-center justify-center min-h-screen">Loading Game...</div>`;
+                return;
+            }
+
+            let questionUI = '';
+            if (question.type === 'base-spirit') {
+                questionUI = `
+                    <div>
+                        <h2 class="text-2xl mb-6 text-center text-gray-300">What is the base spirit of the <span class="font-bold text-white">${question.cocktail.name}</span>?</h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          ${question.options.map(option => `<button data-action="submit-answer-easy" data-answer="${option}" class="p-4 bg-gray-700 rounded-lg hover:bg-amber-400 hover:text-gray-900 transition-colors duration-200 font-semibold">${option}</button>`).join('')}
+                        </div>
+                    </div>`;
+            } else if (question.type === 'intermediate') {
+                let blankIndex = -1;
+                questionUI = `
+                    <div>
+                        <h2 class="text-2xl mb-6 text-center text-gray-300">Complete the recipe for the <span class="font-bold text-white">${question.cocktail.name}</span>:</h2>
+                        <div id="intermediate-form" class="space-y-3 font-mono text-lg mb-6">
+                            ${question.ingredients.map((ing, i) => `
+                                <div class="flex items-center flex-wrap gap-x-2">
+                                    ${ing.parts.map((part, j) => {
+                                        if (part.isBlank) {
+                                            blankIndex++;
+                                            return `<input data-blank-index="${blankIndex}" type="text" class="bg-gray-900 border-b-2 border-gray-600 focus:border-amber-400 outline-none text-amber-300 p-1 rounded-sm w-32" placeholder="_______" />`;
+                                        }
+                                        return `<span>${part.value}</span>`;
+                                    }).join(' ')}
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button data-action="submit-answer-intermediate" class="w-full mt-4 p-3 bg-amber-400 text-gray-900 font-bold rounded-lg hover:bg-amber-500 transition-colors">Submit Answer</button>
+                    </div>`;
+            } else if (question.type === 'advanced') {
+                questionUI = `
+                    <div>
+                        <h2 class="text-2xl mb-6 text-center text-gray-300">Build the recipe for the <span class="font-bold text-white">${question.cocktail.name}</span>:</h2>
+                         <div id="advanced-form" class="space-y-4 font-mono text-lg mb-6">
+                            ${question.cocktail.ingredients.map((_, i) => `
+                                <div class="flex items-center flex-wrap gap-2">
+                                     <input data-index="${i}" data-part="quantity" type="text" class="bg-gray-900 border-b-2 border-gray-600 focus:border-amber-400 outline-none text-amber-300 p-1 rounded-sm flex-grow sm:flex-grow-0 sm:w-32" placeholder="Amount" />
+                                     <input data-index="${i}" data-part="name" type="text" class="bg-gray-900 border-b-2 border-gray-600 focus:border-amber-400 outline-none text-amber-300 p-1 rounded-sm flex-grow" placeholder="Ingredient" />
+                                </div>
+                            `).join('')}
+                        </div>
+                         <button data-action="submit-answer-advanced" class="w-full mt-4 p-3 bg-amber-400 text-gray-900 font-bold rounded-lg hover:bg-amber-500 transition-colors">Submit Recipe</button>
+                    </div>`;
+            }
+
+            app.innerHTML = `
+                <div class="container mx-auto p-4 md:p-8">
+                    <div class="flex justify-between items-center mb-8">
+                        <div>
+                            <h1 class="text-3xl font-bold text-amber-400">${state.gameDifficulty} Mode</h1>
+                            <p class="text-gray-400">Round ${state.currentRound + 1} of ${TOTAL_ROUNDS} | Score: ${state.score}</p>
+                        </div>
+                        <button data-action="navigate" data-screen="game_menu" class="px-4 py-2 bg-gray-700 text-gray-300 font-semibold rounded-full hover:bg-gray-600 transition-colors">
+                            Exit Game
+                        </button>
+                    </div>
+                    <div class="bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700">
+                        ${questionUI}
+                    </div>
+                </div>`;
+        };
+
+        const renderFlashcardMenu = () => {
+             app.innerHTML = `
+                <div class="min-h-screen flex flex-col items-center justify-center p-4">
+                    <header class="text-center mb-12">
+                        <h1 class="text-5xl md:text-6xl font-bold tracking-wider text-white mb-4" style="font-family: 'Garamond', serif">
+                            Flashcard Mode
+                        </h1>
+                        <p class="text-lg text-gray-400 max-w-2xl mx-auto">
+                            Select a deck to begin your studies.
+                        </p>
+                    </header>
+                    <div class="space-y-6 w-full max-w-md">
+                        <button data-action="start-flashcards" data-deck-type="recipe" class="w-full text-left p-6 bg-gray-800 border border-gray-700 rounded-lg transition-all duration-300 transform hover:scale-105 hover:border-amber-400 shadow-lg">
+                            <h2 class="text-2xl text-white font-bold">Recipe Deck</h2>
+                            <p class="text-gray-400 mt-1">Study Ingredients, Preparation, and Presentation.</p>
+                        </button>
+                        <button data-action="start-flashcards" data-deck-type="history" class="w-full text-left p-6 bg-gray-800 border border-gray-700 rounded-lg transition-all duration-300 transform hover:scale-105 hover:border-amber-400 shadow-lg">
+                            <h2 class="text-2xl text-white font-bold">History Deck</h2>
+                            <p class="text-gray-400 mt-1">Study History, Variations, and Bartender Comments.</p>
+                        </button>
+                    </div>
+                    <button data-action="navigate" data-screen="main_menu" class="mt-12 px-6 py-2 bg-gray-700 text-gray-300 font-semibold rounded-full transition-all duration-300 transform hover:scale-105 hover:bg-gray-600">
+                        Back to Main Menu
+                    </button>
+                </div>`;
+        };
+
+        const renderFlashcardScreen = () => {
+            const displayedDeck = state.showOnlyUnlearned ? state.flashcardDeck.filter(c => !state.learnedCards.has(c.name)) : state.flashcardDeck;
+            const currentCocktail = displayedDeck[state.flashcardCurrentIndex];
+            const deckName = state.flashcardDeckType.charAt(0).toUpperCase() + state.flashcardDeckType.slice(1);
+            
+            let cardContent = '';
+            if (!currentCocktail) {
+                cardContent = `
+                    <div class="text-center">
+                        <h2 class="text-3xl text-white font-bold">Congratulations!</h2>
+                        <p class="text-gray-400 mt-2">You've learned all the cards in this deck.</p>
+                        <button data-action="flashcard-reset" class="mt-6 flex items-center gap-2 mx-auto px-6 py-3 bg-amber-400 text-gray-900 font-bold rounded-full transition-all duration-300 transform hover:scale-105">
+                            <span class="w-5 h-5 inline-block">${ICONS.reset}</span> Study Again
+                        </button>
+                    </div>`;
+            } else {
+                 const renderSection = (title, content) => {
+                    if (!content) return '';
+                    const listItems = Array.isArray(content) ? content.map(item => `<li>${item}</li>`).join('') : '';
+                    return `
+                        <div class="mb-4">
+                            <h3 class="text-lg font-bold text-amber-300 mb-2 border-b border-gray-600 pb-1">${title}</h3>
+                            ${Array.isArray(content) ? `<ul class="list-disc list-inside text-gray-300 space-y-1 text-sm">${listItems}</ul>` : `<p class="text-gray-300 whitespace-pre-wrap leading-relaxed text-sm">${content}</p>`}
+                        </div>`;
+                };
+
+                let backContent;
+                if (state.flashcardDeckType === 'recipe') {
+                    backContent = `
+                        ${renderSection('Ingredients', currentCocktail.ingredients)}
+                        ${renderSection('Preparation', currentCocktail.preparation)}
+                        ${renderSection('Presentation', currentCocktail.presentation)}`;
+                } else {
+                    backContent = `
+                        ${renderSection('History', currentCocktail.history)}
+                        ${renderSection('Preparations & Variations', currentCocktail.preparationsAndVariations)}
+                        ${renderSection('Bartender Comments', currentCocktail.bartenderComments)}`;
+                }
+
+                cardContent = `
+                    <div class="w-full h-full max-h-[500px]">
+                        <div class="flashcard-scene h-full w-full">
+                            <div class="flashcard ${state.isFlipped ? 'is-flipped' : ''}" data-action="flashcard-flip">
+                                <div class="flashcard-face flashcard-face--front bg-gray-800 rounded-lg p-6 border border-gray-700">
+                                    <h2 class="text-4xl font-bold text-center text-white">${currentCocktail.name}</h2>
+                                    <p class="text-amber-400 mt-2">${currentCocktail.era}</p>
+                                    <p class="text-gray-500 mt-8 text-sm">Click to flip</p>
+                                </div>
+                                <div class="flashcard-face flashcard-face--back bg-gray-800 rounded-lg p-6 border border-gray-700 overflow-y-auto">
+                                   <div class="w-full">
+                                     <h2 class="text-2xl font-bold text-center text-white mb-4">${currentCocktail.name}</h2>
+                                     ${backContent}
+                                   </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+
+            const isCurrentLearned = currentCocktail && state.learnedCards.has(currentCocktail.name);
+            app.innerHTML = `
+                <div class="flashcard-screen container mx-auto p-4 md:p-8 flex flex-col h-[calc(100vh-1rem)] landscape-container">
+                    <div class="flex justify-between items-center mb-4 flex-wrap gap-4 landscape-hidden">
+                        <div>
+                            <h1 class="text-3xl font-bold text-amber-400">${deckName} Deck</h1>
+                            <p class="text-gray-400">Cards learned: ${state.learnedCards.size} of ${state.flashcardDeck.length}</p>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <button data-action="flashcard-reset" class="flex items-center gap-2 px-4 py-2 bg-gray-700 text-gray-300 font-semibold rounded-full hover:bg-red-500 hover:text-white transition-colors">
+                                <span class="w-5 h-5 inline-block">${ICONS.reset}</span> Reset Deck
+                            </button>
+                            <button data-action="navigate" data-screen="flashcard_menu" class="px-4 py-2 bg-gray-700 text-gray-300 font-semibold rounded-full hover:bg-gray-600 transition-colors">
+                                Exit
+                            </button>
+                        </div>
+                    </div>
+                     <div class="flex items-center justify-center my-4 landscape-hidden">
+                        <label class="flex items-center cursor-pointer">
+                            <div class="relative">
+                                <input id="toggle-unlearned" type="checkbox" class="sr-only" ${state.showOnlyUnlearned ? 'checked' : ''} />
+                                <div class="block bg-gray-600 w-14 h-8 rounded-full"></div>
+                                <div class="dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${state.showOnlyUnlearned ? 'transform translate-x-6 bg-amber-400' : ''}"></div>
+                            </div>
+                            <div class="ml-3 text-gray-300 font-medium">
+                                Show Only Unlearned Cards
+                            </div>
+                        </label>
+                    </div>
+                    <div id="flashcard-wrapper" class="flex-grow flex flex-col items-center justify-center w-full max-w-2xl mx-auto landscape-flashcard-wrapper">
+                        ${cardContent}
+                    </div>
+                    
+                    ${displayedDeck.length > 0 ? `
+                        <div class="flex flex-col items-center justify-center gap-4 mt-6 landscape-controls-wrapper">
+                             <p class="text-gray-500 landscape-hidden">Card ${state.flashcardCurrentIndex + 1} of ${displayedDeck.length}</p>
+                            <div class="flex items-center justify-center gap-4 w-full max-w-lg">
+                                <button data-action="flashcard-prev" aria-label="Previous Card" class="p-3 bg-gray-700 rounded-full hover:bg-amber-400 hover:text-gray-900 transition-colors landscape-hidden"><span class="w-6 h-6 inline-block">${ICONS.leftArrow}</span></button>
+                                <button data-action="flashcard-toggle-learned" class="flex-grow px-6 py-3 font-bold rounded-lg transition-colors flex items-center justify-center gap-2 ${isCurrentLearned ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-600 text-gray-200 hover:bg-gray-500'}">
+                                   <span class="w-6 h-6 inline-block">${ICONS.check}</span> ${isCurrentLearned ? 'Learned' : 'Mark as Learned'}
+                                </button>
+                                <button data-action="flashcard-next" aria-label="Next Card" class="p-3 bg-gray-700 rounded-full hover:bg-amber-400 hover:text-gray-900 transition-colors landscape-hidden"><span class="w-6 h-6 inline-block">${ICONS.rightArrow}</span></button>
+                            </div>
+                        </div>` : ''}
+                </div>`;
+            
+            document.getElementById('toggle-unlearned')?.addEventListener('change', (e) => {
+                setState({ showOnlyUnlearned: e.target.checked, flashcardCurrentIndex: 0, isFlipped: false });
+            });
+        };
+
+        // --- MAIN RENDER FUNCTION ---
+        const render = () => {
+            closeModal(); // Close any open modals on screen change
+            switch (state.screen) {
+                case 'main_menu': renderMainMenu(); break;
+                case 'catalog': renderCompendium(); break;
+                case 'game_menu': renderGameMenu(); break;
+                case 'game_screen': renderGameScreen(); break;
+                case 'flashcard_menu': renderFlashcardMenu(); break;
+                case 'flashcard_screen': renderFlashcardScreen(); break;
+                default: renderMainMenu();
+            }
+        };
+
+        // --- EVENT HANDLERS ---
+        const handleAnswerSubmit = (isCorrect) => {
+            if (isCorrect) {
+                state.score++;
+            }
+            const question = state.gameQuestions[state.currentRound];
+            let answerHTML = '';
+             if (question.type === 'base-spirit') {
+                answerHTML = `<p>The correct answer was: <strong>${question.correctAnswer}</strong></p>`
+            } else {
+                answerHTML = `
+                    <div>
+                        <p class="font-bold mb-2">The correct recipe is:</p>
+                        <ul class="list-disc list-inside">
+                            ${question.cocktail.ingredients.map((ing, i) => `<li key=${i}>${ing}</li>`).join('')}
+                        </ul>
+                    </div>`;
+            }
+
+            createModal(`
+                <div class="bg-gray-800 rounded-lg shadow-2xl w-full max-w-lg text-center p-8 border-t-8 ${isCorrect ? 'border-green-500' : 'border-red-500'}" data-action="stop-propagation">
+                    <h2 class="text-4xl font-extrabold mb-4 ${isCorrect ? 'text-green-400' : 'text-red-400'}">${isCorrect ? "Correct!" : "Not Quite!"}</h2>
+                    <div class="text-gray-300 mb-6 text-left">
+                        ${!isCorrect ? answerHTML : ''}
+                    </div>
+                    <button data-action="next-round" class="w-full p-3 bg-amber-400 text-gray-900 font-bold rounded-lg hover:bg-amber-500 transition-colors">
+                        Next Round
+                    </button>
+                </div>`, 'next-round');
+        };
+
+        const handleNextRound = () => {
+             if (state.currentRound < TOTAL_ROUNDS - 1) {
+                setState({ currentRound: state.currentRound + 1 });
+            } else {
+                setState({ isGameOver: true });
+            }
+        };
+        
+        // --- GLOBAL EVENT LISTENER ---
+        app.addEventListener('click', (e) => {
+            const target = e.target.closest('[data-action]');
+            if (!target) return;
+
+            const action = target.dataset.action;
+
+            switch (action) {
+                case 'navigate':
+                    navigateTo(target.dataset.screen);
+                    break;
+                case 'show-how-to-play':
+                    createModal(HowToPlayModalHTML());
+                    break;
+                case 'closeModal':
+                    closeModal();
+                    break;
+                case 'filter-era':
+                    setState({ activeEra: target.dataset.era });
+                    break;
+                case 'select-cocktail':
+                    const name = target.dataset.cocktailName;
+                    const cocktail = cocktails.find(c => c.name === name);
+                    if (cocktail) createModal(CocktailModalHTML(cocktail));
+                    break;
+                case 'start-game':
+                    const difficulty = target.dataset.difficulty;
+                    state.gameDifficulty = difficulty;
+                    state.gameQuestions = generateQuestions(difficulty, TOTAL_ROUNDS);
+                    state.currentRound = 0;
+                    state.score = 0;
+                    state.isGameOver = false;
+                    navigateTo('game_screen');
+                    break;
+                case 'play-again':
+                     state.gameQuestions = generateQuestions(state.gameDifficulty, TOTAL_ROUNDS);
+                     setState({ currentRound: 0, score: 0, isGameOver: false });
+                     break;
+                case 'submit-answer-easy':
+                    handleAnswerSubmit(checkBaseSpiritAnswer(state.gameQuestions[state.currentRound], target.dataset.answer));
+                    break;
+                case 'submit-answer-intermediate': {
+                    const form = document.getElementById('intermediate-form');
+                    const inputs = [...form.querySelectorAll('input')];
+                    const answers = inputs.map(input => input.value);
+                    handleAnswerSubmit(checkIntermediateAnswer(state.gameQuestions[state.currentRound], answers));
+                    break;
+                }
+                case 'submit-answer-advanced': {
+                    const form = document.getElementById('advanced-form');
+                    const inputs = [...form.querySelectorAll('input')];
+                    const answers = [];
+                    for (let i = 0; i < state.gameQuestions[state.currentRound].cocktail.ingredients.length; i++) {
+                        const quantityInput = inputs.find(el => el.dataset.index == i && el.dataset.part === 'quantity');
+                        const nameInput = inputs.find(el => el.dataset.index == i && el.dataset.part === 'name');
+                        answers.push({ quantity: quantityInput.value, name: nameInput.value });
+                    }
+                    handleAnswerSubmit(checkAdvancedAnswer(state.gameQuestions[state.currentRound], answers));
+                    break;
+                }
+                case 'next-round':
+                    handleNextRound();
+                    break;
+                case 'start-flashcards':
+                    const deckType = target.dataset.deckType;
+                    const LOCAL_STORAGE_KEY = `flashcard-learned-${deckType}`;
+                    const item = window.localStorage.getItem(LOCAL_STORAGE_KEY);
+                    const learned = item ? new Set(JSON.parse(item)) : new Set();
+                    state.flashcardDeckType = deckType;
+                    state.flashcardDeck = shuffleArray(cocktails);
+                    state.flashcardCurrentIndex = 0;
+                    state.isFlipped = false;
+                    state.learnedCards = learned;
+                    state.showOnlyUnlearned = false;
+                    navigateTo('flashcard_screen');
+                    break;
+                case 'flashcard-flip':
+                    setState({ isFlipped: !state.isFlipped });
+                    break;
+                case 'flashcard-prev':
+                case 'flashcard-next': {
+                    const displayedDeck = state.showOnlyUnlearned ? state.flashcardDeck.filter(c => !state.learnedCards.has(c.name)) : state.flashcardDeck;
+                    if (displayedDeck.length === 0) break;
+                    const change = action === 'flashcard-prev' ? -1 : 1;
+                    const newIndex = (state.flashcardCurrentIndex + change + displayedDeck.length) % displayedDeck.length;
+                    
+                    const card = document.querySelector('.flashcard');
+                    if(card) {
+                        card.classList.remove('is-flipped');
+                        setTimeout(() => {
+                           setState({ flashcardCurrentIndex: newIndex, isFlipped: false });
+                        }, 150);
+                    }
+                    break;
+                }
+                case 'flashcard-toggle-learned': {
+                    const displayedDeck = state.showOnlyUnlearned ? state.flashcardDeck.filter(c => !state.learnedCards.has(c.name)) : state.flashcardDeck;
+                    const currentCocktail = displayedDeck[state.flashcardCurrentIndex];
+                    if (!currentCocktail) break;
+
+                    const newLearned = new Set(state.learnedCards);
+                    if (newLearned.has(currentCocktail.name)) {
+                        newLearned.delete(currentCocktail.name);
+                    } else {
+                        newLearned.add(currentCocktail.name);
+                    }
+                    window.localStorage.setItem(`flashcard-learned-${state.flashcardDeckType}`, JSON.stringify(Array.from(newLearned)));
+                    setState({ learnedCards: newLearned });
+                    break;
+                }
+                case 'flashcard-reset':
+                    if (window.confirm("Are you sure you want to reset the deck? All 'learned' cards will be cleared.")) {
+                        window.localStorage.removeItem(`flashcard-learned-${state.flashcardDeckType}`);
+                        setState({ learnedCards: new Set(), flashcardCurrentIndex: 0, isFlipped: false });
+                    }
+                    break;
+            }
+        });
+        
+        document.body.addEventListener('click', (e) => {
+            const target = e.target;
+            if (target.id === 'modal-container') {
+                const action = target.dataset.action;
+                if (action === 'closeModal') closeModal();
+                if (action === 'next-round') handleNextRound();
+            }
+        });
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+
+        // Flashcard swipe logic
+        app.addEventListener('touchstart', e => {
+            const wrapper = e.target.closest('#flashcard-wrapper');
+            if(wrapper) {
+                state.touchStartX = e.targetTouches[0].clientX;
+            }
+        });
+
+        app.addEventListener('touchend', e => {
+            const wrapper = e.target.closest('#flashcard-wrapper');
+            if(wrapper && state.touchStartX !== null) {
+                const touchEndX = e.changedTouches[0].clientX;
+                const distance = touchEndX - state.touchStartX;
+                const minSwipeDistance = 50;
+
+                const displayedDeck = state.showOnlyUnlearned ? state.flashcardDeck.filter(c => !state.learnedCards.has(c.name)) : state.flashcardDeck;
+                if (displayedDeck.length > 0) {
+                     if (distance > minSwipeDistance) { // Swipe Right
+                        const newIndex = (state.flashcardCurrentIndex - 1 + displayedDeck.length) % displayedDeck.length;
+                        setState({ flashcardCurrentIndex: newIndex, isFlipped: false });
+                    } else if (distance < -minSwipeDistance) { // Swipe Left
+                        const newIndex = (state.flashcardCurrentIndex + 1) % displayedDeck.length;
+                        setState({ flashcardCurrentIndex: newIndex, isFlipped: false });
+                    }
+                }
+                state.touchStartX = null;
+            }
+        });
+
+        // --- INITIAL RENDER ---
+        render();
+    </script>
+</body>
+</html>
